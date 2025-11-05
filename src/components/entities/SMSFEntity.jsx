@@ -1,7 +1,8 @@
 import React from 'react';
 import { Landmark, Plus, Trash2 } from 'lucide-react';
+import BankingDetailsSelector from './BankingDetailsSelector';
 
-const SMSFEntity = ({ smsfs, handlers }) => {
+const SMSFEntity = ({ smsfs, handlers, formData }) => {
   return (
     <div className="border border-gray-200 rounded-lg p-4">
       <div className="flex justify-between items-center mb-4">
@@ -96,6 +97,13 @@ const SMSFEntity = ({ smsfs, handlers }) => {
                 + Add Trading Name
               </button>
             </div>
+
+            <BankingDetailsSelector
+              entity={smsf}
+              formData={formData}
+              onUpdate={(field, value) => handlers.updateSMSF(idx, field, value)}
+              entityType="SMSF"
+            />
           </div>
         </div>
       ))}

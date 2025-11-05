@@ -1,7 +1,8 @@
 import React from 'react';
 import { Landmark, Plus, Trash2 } from 'lucide-react';
+import BankingDetailsSelector from './BankingDetailsSelector';
 
-const TrustEntity = ({ trusts, handlers }) => {
+const TrustEntity = ({ trusts, handlers, formData }) => {
   return (
     <div className="border border-gray-200 rounded-lg p-4">
       <div className="flex justify-between items-center mb-4">
@@ -108,6 +109,13 @@ const TrustEntity = ({ trusts, handlers }) => {
                 + Add Trading Name
               </button>
             </div>
+
+            <BankingDetailsSelector
+              entity={trust}
+              formData={formData}
+              onUpdate={(field, value) => handlers.updateTrust(idx, field, value)}
+              entityType="Trust"
+            />
           </div>
         </div>
       ))}

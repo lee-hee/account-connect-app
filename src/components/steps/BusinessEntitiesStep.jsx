@@ -27,37 +27,42 @@ const BusinessEntitiesStep = ({ formData, setFormData }) => {
       <SoleTraderEntity 
         soleTrader={formData.soleTrader}
         handlers={soleTraderHandlers}
+        formData={formData}
       />
       
       <CompanyEntity 
         companies={formData.companies}
         handlers={companyHandlers}
+        formData={formData}
       />
       
       <TrustEntity 
         trusts={formData.trusts}
         handlers={trustHandlers}
+        formData={formData}
       />
       
       <SMSFEntity 
         smsfs={formData.smsfs}
         handlers={smsfHandlers}
+        formData={formData}
       />
       
       <PartnershipEntity 
         partnerships={formData.partnerships}
         handlers={partnershipHandlers}
+        formData={formData}
       />
       
-      <InvestmentPropertyEntity 
-        properties={formData.investmentProperties}
-        handlers={propertyHandlers}
-      />
+      {/*<InvestmentPropertyEntity */}
+      {/*  properties={formData.investmentProperties}*/}
+      {/*  handlers={propertyHandlers}*/}
+      {/*/>*/}
 
       <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
         <p className="text-sm text-blue-800">
-          <strong>Note:</strong> All business entity types are now fully modular. 
-          Each entity component is in a separate file for easy maintenance.
+          <strong>Note:</strong> All business entities support banking details selection. 
+          You can use your primary banking or add separate banking for each entity.
         </p>
       </div>
     </div>

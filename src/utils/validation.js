@@ -30,18 +30,31 @@ export const validateStep = (step, formData, setErrors) => {
     if (!formData.tfn) newErrors.tfn = 'Tax File Number is required';
     else if (!validateTFN(formData.tfn)) newErrors.tfn = 'TFN must be 9 digits';
 
-    // Bank Details - Mandatory fields
+    // Middle Name is optional - no validation needed
+  }
+
+  if (step === 2) {
+    // Financial Details - Bank Details are Mandatory
     if (!formData.bankName || !formData.bankName.trim()) newErrors.bankName = 'Bank name is required';
     if (!formData.accountName || !formData.accountName.trim()) newErrors.accountName = 'Account name is required';
     if (!formData.bsb || !formData.bsb.trim()) newErrors.bsb = 'BSB is required';
     else if (!/^\d{3}-?\d{3}$/.test(formData.bsb)) newErrors.bsb = 'BSB must be in format XXX-XXX';
     if (!formData.accountNumber || !formData.accountNumber.trim()) newErrors.accountNumber = 'Account number is required';
 
-    // Middle Name and Income Streams are optional - no validation needed
+    // Income Streams are optional - no validation needed
   }
 
-  if (step === 2) {
+  if (step === 3) {
+    // Address & Residency
     if (!formData.residencyStatus) newErrors.residencyStatus = 'Residency status is required';
+  }
+
+  // Step 4 (Family Details) and Step 5 (Business Entities) have no mandatory validations
+
+  if (step === 6) {
+    // Agreements - Both must be checked
+    if (!formData.agreeToTerms) newErrors.agreeToTerms = 'You must agree to the Terms of Service to continue';
+    if (!formData.agreeToPrivacy) newErrors.agreeToPrivacy = 'You must agree to the Privacy Policy to continue';
   }
 
   setErrors(newErrors);

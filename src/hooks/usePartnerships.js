@@ -7,7 +7,12 @@ export const usePartnerships = (formData, setFormData) => {
         gstRegistered: false,
         businessAddress: '',
         tfn: '',
-        tradingNames: ['']
+        tradingNames: [''],
+        usePrimaryBanking: true,
+        bankName: prev.bankName || '',
+        accountName: prev.accountName || '',
+        bsb: prev.bsb || '',
+        accountNumber: prev.accountNumber || ''
       }]
     }));
   };

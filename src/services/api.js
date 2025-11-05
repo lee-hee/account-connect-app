@@ -33,23 +33,34 @@ const transformFormDataToDTO = (formData) => {
     spouseName: formData.spouseName || null,
     spouseDob: formData.spouseDob || null,
 
-    // Add bank details:
+    // Primary Bank Details
     bankName: formData.bankName || null,
     accountName: formData.accountName || null,
     bsb: formData.bsb || null,
     accountNumber: formData.accountNumber || null,
     accountType: formData.accountType || null,
     
+    // Agreements
+    agreeToTerms: formData.agreeToTerms || false,
+    agreeToPrivacy: formData.agreeToPrivacy || false,
+    agreementsAcceptedDate: formData.agreeToTerms && formData.agreeToPrivacy ? new Date().toISOString() : null,
+    
     // System Fields
     emailVerified: false,
     
-    // Sole Trader (One-to-One relationship)
+    // Sole Trader (One-to-One relationship) with optional banking
     soleTrader: formData.soleTrader ? {
       abn: formData.soleTrader.abn ? parseInt(formData.soleTrader.abn) : null,
       gstRegistered: formData.soleTrader.gstRegistered || false,
       tradingName: formData.soleTrader.tradingNames?.filter(name => name.trim() !== '') || [],
       businessAddress: formData.soleTrader.businessAddress || null,
-      registeredAddress: formData.soleTrader.registeredAddress || null
+      registeredAddress: formData.soleTrader.registeredAddress || null,
+      // Banking details for sole trader
+      usePrimaryBanking: formData.soleTrader.usePrimaryBanking !== undefined ? formData.soleTrader.usePrimaryBanking : true,
+      bankName: formData.soleTrader.bankName || null,
+      accountName: formData.soleTrader.accountName || null,
+      bsb: formData.soleTrader.bsb || null,
+      accountNumber: formData.soleTrader.accountNumber || null
     } : null,
     
     // Companies (Many-to-Many relationship)
@@ -61,7 +72,12 @@ const transformFormDataToDTO = (formData) => {
       registeredAddress: company.registeredAddress || null,
       tfn: company.tfn ? parseInt(company.tfn) : null,
       tradingNames: company.tradingNames?.filter(name => name.trim() !== '') || [],
-      asicIndustryCodes: company.asicIndustryCodes?.filter(code => code.trim() !== '') || []
+      asicIndustryCodes: company.asicIndustryCodes?.filter(code => code.trim() !== '') || [],
+      usePrimaryBanking: company.usePrimaryBanking !== undefined ? company.usePrimaryBanking : true,
+      bankName: company.bankName || null,
+      accountName: company.accountName || null,
+      bsb: company.bsb || null,
+      accountNumber: company.accountNumber || null
     })),
     
     // Trusts (Many-to-Many relationship)
@@ -73,7 +89,12 @@ const transformFormDataToDTO = (formData) => {
       registeredAddress: trust.registeredAddress || null,
       tfn: trust.tfn ? parseInt(trust.tfn) : null,
       tradingNames: trust.tradingNames?.filter(name => name.trim() !== '') || [],
-      asicIndustryCodes: trust.asicIndustryCodes?.filter(code => code.trim() !== '') || []
+      asicIndustryCodes: trust.asicIndustryCodes?.filter(code => code.trim() !== '') || [],
+      usePrimaryBanking: trust.usePrimaryBanking !== undefined ? trust.usePrimaryBanking : true,
+      bankName: trust.bankName || null,
+      accountName: trust.accountName || null,
+      bsb: trust.bsb || null,
+      accountNumber: trust.accountNumber || null
     })),
     
     // SMSFs (Many-to-Many relationship)
@@ -84,7 +105,12 @@ const transformFormDataToDTO = (formData) => {
       registeredAddress: smsf.registeredAddress || null,
       tfn: smsf.tfn ? parseInt(smsf.tfn) : null,
       tradingNames: smsf.tradingNames?.filter(name => name.trim() !== '') || [],
-      asicIndustryCodes: smsf.asicIndustryCodes?.filter(code => code.trim() !== '') || []
+      asicIndustryCodes: smsf.asicIndustryCodes?.filter(code => code.trim() !== '') || [],
+      usePrimaryBanking: smsf.usePrimaryBanking !== undefined ? smsf.usePrimaryBanking : true,
+      bankName: smsf.bankName || null,
+      accountName: smsf.accountName || null,
+      bsb: smsf.bsb || null,
+      accountNumber: smsf.accountNumber || null
     })),
     
     // Partnerships (Many-to-Many relationship)
@@ -93,7 +119,12 @@ const transformFormDataToDTO = (formData) => {
       gstRegistered: partnership.gstRegistered || false,
       businessAddress: partnership.businessAddress || null,
       tfn: partnership.tfn ? parseInt(partnership.tfn) : null,
-      tradingNames: partnership.tradingNames?.filter(name => name.trim() !== '') || []
+      tradingNames: partnership.tradingNames?.filter(name => name.trim() !== '') || [],
+      usePrimaryBanking: partnership.usePrimaryBanking !== undefined ? partnership.usePrimaryBanking : true,
+      bankName: partnership.bankName || null,
+      accountName: partnership.accountName || null,
+      bsb: partnership.bsb || null,
+      accountNumber: partnership.accountNumber || null
     })),
     
     // Investment Properties (Many-to-Many relationship)
@@ -132,13 +163,28 @@ export const generateDummyClientData = () => {
     spouseName: "Jane Smith",
     spouseDob: "1987-08-20",
     
-    // Sole Trader
+    // Primary Banking
+    bankName: "Commonwealth Bank",
+    accountName: "John Smith",
+    bsb: "063-123",
+    accountNumber: "12345678",
+    
+    // Agreements
+    agreeToTerms: true,
+    agreeToPrivacy: true,
+    
+    // Sole Trader with separate banking
     soleTrader: {
       abn: "12345678901",
       gstRegistered: true,
       tradingNames: ["John's Consulting", "JS Services"],
       businessAddress: "456 Business Ave, Melbourne VIC 3000",
-      registeredAddress: "123 Main Street, Melbourne VIC 3000"
+      registeredAddress: "123 Main Street, Melbourne VIC 3000",
+      usePrimaryBanking: false,
+      bankName: "Westpac",
+      accountName: "John's Consulting",
+      bsb: "032-456",
+      accountNumber: "98765432"
     },
     
     // Companies

@@ -7,7 +7,12 @@ export const useSoleTrader = (formData, setFormData) => {
         gstRegistered: false,
         tradingNames: [''],
         businessAddress: '',
-        registeredAddress: ''
+        registeredAddress: '',
+        usePrimaryBanking: true,
+        bankName: prev.bankName || '',
+        accountName: prev.accountName || '',
+        bsb: prev.bsb || '',
+        accountNumber: prev.accountNumber || ''
       }
     }));
   };

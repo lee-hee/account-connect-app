@@ -1,7 +1,8 @@
 import React from 'react';
 import { User, Plus, Trash2 } from 'lucide-react';
+import BankingDetailsSelector from './BankingDetailsSelector';
 
-const PartnershipEntity = ({ partnerships, handlers }) => {
+const PartnershipEntity = ({ partnerships, handlers, formData }) => {
   return (
     <div className="border border-gray-200 rounded-lg p-4">
       <div className="flex justify-between items-center mb-4">
@@ -106,6 +107,13 @@ const PartnershipEntity = ({ partnerships, handlers }) => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
               />
             </div>
+
+            <BankingDetailsSelector
+              entity={partnership}
+              formData={formData}
+              onUpdate={(field, value) => handlers.updatePartnership(idx, field, value)}
+              entityType="Partnership"
+            />
           </div>
         </div>
       ))}

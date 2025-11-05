@@ -20,6 +20,8 @@ export const useFormData = () => {
     bsb: '',
     accountNumber: '',
     accountType: '',
+    agreeToTerms: false,
+    agreeToPrivacy: false,
     soleTrader: null,
     companies: [],
     trusts: [],

@@ -1,7 +1,8 @@
 import React from 'react';
 import { Building2, Plus, Trash2 } from 'lucide-react';
+import BankingDetailsSelector from './BankingDetailsSelector';
 
-const SoleTraderEntity = ({ soleTrader, handlers }) => {
+const SoleTraderEntity = ({ soleTrader, handlers, formData }) => {
   return (
     <div className="border border-gray-200 rounded-lg p-4">
       <div className="flex justify-between items-center mb-4">
@@ -108,6 +109,14 @@ const SoleTraderEntity = ({ soleTrader, handlers }) => {
               />
             </div>
           </div>
+
+          {/* Banking Information Section */}
+          <BankingDetailsSelector
+            entity={soleTrader}
+            formData={formData}
+            onUpdate={handlers.updateSoleTrader}
+            entityType="Sole Trader"
+          />
         </div>
       )}
     </div>

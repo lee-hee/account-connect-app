@@ -10,7 +10,12 @@ export const useCompanies = (formData, setFormData) => {
         registeredAddress: '',
         tfn: '',
         tradingNames: [''],
-        asicIndustryCodes: ['']
+        asicIndustryCodes: [''],
+        usePrimaryBanking: true,
+        bankName: prev.bankName || '',
+        accountName: prev.accountName || '',
+        bsb: prev.bsb || '',
+        accountNumber: prev.accountNumber || ''
       }]
     }));
   };

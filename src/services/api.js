@@ -8,7 +8,7 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080/api
 /**
  * Transform form data to match backend DTO structure
  * Converts frontend form data to the format expected by the Micronaut backend
- * 
+ *
  * @param {Object} formData - Frontend form data
  * @returns {Object} Transformed DTO for backend
  */
@@ -22,12 +22,12 @@ const transformFormDataToDTO = (formData) => {
     tfn: formData.tfn ? parseInt(formData.tfn) : null,
     email: formData.email,
     contactNo: formData.contactNo || null,
-    
+
     // Address Information
     addressResidential: formData.addressResidential || null,
     addressPostal: formData.addressPostal || null,
     residencyStatus: formData.residencyStatus,
-    
+
     // Family Information
     noOfDependentChildren: parseInt(formData.noOfDependentChildren) || 0,
     spouseName: formData.spouseName || null,
@@ -39,15 +39,15 @@ const transformFormDataToDTO = (formData) => {
     bsb: formData.bsb || null,
     accountNumber: formData.accountNumber || null,
     accountType: formData.accountType || null,
-    
+
     // Agreements
     agreeToTerms: formData.agreeToTerms || false,
     agreeToPrivacy: formData.agreeToPrivacy || false,
     agreementsAcceptedDate: formData.agreeToTerms && formData.agreeToPrivacy ? new Date().toISOString() : null,
-    
+
     // System Fields
     emailVerified: false,
-    
+
     // Sole Trader (One-to-One relationship) with optional banking
     soleTrader: formData.soleTrader ? {
       abn: formData.soleTrader.abn ? parseInt(formData.soleTrader.abn) : null,
@@ -62,7 +62,7 @@ const transformFormDataToDTO = (formData) => {
       bsb: formData.soleTrader.bsb || null,
       accountNumber: formData.soleTrader.accountNumber || null
     } : null,
-    
+
     // Companies (Many-to-Many relationship)
     companyList: (formData.companies || []).map(company => ({
       abn: company.abn ? parseInt(company.abn) : null,
@@ -79,7 +79,7 @@ const transformFormDataToDTO = (formData) => {
       bsb: company.bsb || null,
       accountNumber: company.accountNumber || null
     })),
-    
+
     // Trusts (Many-to-Many relationship)
     trustList: (formData.trusts || []).map(trust => ({
       abn: trust.abn ? parseInt(trust.abn) : null,
@@ -96,7 +96,7 @@ const transformFormDataToDTO = (formData) => {
       bsb: trust.bsb || null,
       accountNumber: trust.accountNumber || null
     })),
-    
+
     // SMSFs (Many-to-Many relationship)
     smsfList: (formData.smsfs || []).map(smsf => ({
       abn: smsf.abn ? parseInt(smsf.abn) : null,
@@ -112,7 +112,7 @@ const transformFormDataToDTO = (formData) => {
       bsb: smsf.bsb || null,
       accountNumber: smsf.accountNumber || null
     })),
-    
+
     // Partnerships (Many-to-Many relationship)
     partnerships: (formData.partnerships || []).map(partnership => ({
       abn: partnership.abn ? parseInt(partnership.abn) : null,
@@ -125,15 +125,14 @@ const transformFormDataToDTO = (formData) => {
       accountName: partnership.accountName || null,
       bsb: partnership.bsb || null,
       accountNumber: partnership.accountNumber || null
-    })),
-
+    }))
   };
 };
 
 /**
  * Save current step data to backend using step-specific endpoints
  * Each step has its own meaningful endpoint name
- * 
+ *
  * @param {Object} formData - Complete form data
  * @param {number} step - Current step number
  * @returns {Promise<Object>} API response
@@ -142,7 +141,7 @@ export const saveStepData = async (formData, step) => {
   try {
     let stepData = {};
     let endpoint = '';
-    
+
     // Extract data and set endpoint based on current step
     switch(step) {
       case 1: // Personal Info
@@ -157,10 +156,11 @@ export const saveStepData = async (formData, step) => {
           contactNo: formData.contactNo || null
         };
         break;
-        
+
       case 2: // Financial Details / Income Streams
         endpoint = `${API_BASE_URL}/clients/save-income-stream-info`;
         stepData = {
+          clientId: formData.clientId, // Include clientId
           bankName: formData.bankName || null,
           accountName: formData.accountName || null,
           bsb: formData.bsb || null,
@@ -172,28 +172,31 @@ export const saveStepData = async (formData, step) => {
           hasStocks: formData.hasStocks || false
         };
         break;
-        
+
       case 3: // Address & Residency
         endpoint = `${API_BASE_URL}/clients/save-address-residency`;
         stepData = {
+          clientId: formData.clientId, // Include clientId
           addressResidential: formData.addressResidential || null,
           addressPostal: formData.addressPostal || null,
           residencyStatus: formData.residencyStatus
         };
         break;
-        
+
       case 4: // Family Details
         endpoint = `${API_BASE_URL}/clients/save-family-details`;
         stepData = {
+          clientId: formData.clientId, // Include clientId
           noOfDependentChildren: parseInt(formData.noOfDependentChildren) || 0,
           spouseName: formData.spouseName || null,
           spouseDob: formData.spouseDob || null
         };
         break;
-        
+
       case 5: // Business Entities
         endpoint = `${API_BASE_URL}/clients/save-business-entities`;
         stepData = {
+          clientId: formData.clientId, // Include clientId
           // Sole Trader
           soleTrader: formData.soleTrader ? {
             abn: formData.soleTrader.abn ? parseInt(formData.soleTrader.abn) : null,
@@ -207,7 +210,7 @@ export const saveStepData = async (formData, step) => {
             bsb: formData.soleTrader.bsb || null,
             accountNumber: formData.soleTrader.accountNumber || null
           } : null,
-          
+
           // Companies
           companyList: (formData.companies || []).map(company => ({
             abn: company.abn ? parseInt(company.abn) : null,
@@ -224,7 +227,7 @@ export const saveStepData = async (formData, step) => {
             bsb: company.bsb || null,
             accountNumber: company.accountNumber || null
           })),
-          
+
           // Trusts
           trustList: (formData.trusts || []).map(trust => ({
             abn: trust.abn ? parseInt(trust.abn) : null,
@@ -241,7 +244,7 @@ export const saveStepData = async (formData, step) => {
             bsb: trust.bsb || null,
             accountNumber: trust.accountNumber || null
           })),
-          
+
           // SMSFs
           smsfList: (formData.smsfs || []).map(smsf => ({
             abn: smsf.abn ? parseInt(smsf.abn) : null,
@@ -257,7 +260,7 @@ export const saveStepData = async (formData, step) => {
             bsb: smsf.bsb || null,
             accountNumber: smsf.accountNumber || null
           })),
-          
+
           // Partnerships
           partnerships: (formData.partnerships || []).map(partnership => ({
             abn: partnership.abn ? parseInt(partnership.abn) : null,
@@ -270,23 +273,23 @@ export const saveStepData = async (formData, step) => {
             accountName: partnership.accountName || null,
             bsb: partnership.bsb || null,
             accountNumber: partnership.accountNumber || null
-          })),
-
+          }))
         };
         break;
-        
+
       case 6: // Review - No save needed
         return { success: true, message: 'Review step - no save needed' };
-        
+
       case 7: // Agreements
         endpoint = `${API_BASE_URL}/clients/save-agreements`;
         stepData = {
+          clientId: formData.clientId, // Include clientId
           agreeToTerms: formData.agreeToTerms || false,
           agreeToPrivacy: formData.agreeToPrivacy || false,
           agreementsAcceptedDate: formData.agreeToTerms && formData.agreeToPrivacy ? new Date().toISOString() : null
         };
         break;
-        
+
       default:
         throw new Error(`Invalid step number: ${step}`);
     }
@@ -313,16 +316,17 @@ export const saveStepData = async (formData, step) => {
 
     const data = await response.json();
     console.log('✅ Step data saved successfully:', data);
-    
+
     return {
       success: true,
       data: data,
-      message: `Step ${step} data saved successfully`
+      message: `Step ${step} data saved successfully`,
+      clientId: data.clientId || data.id // Return clientId from response
     };
 
   } catch (error) {
     console.error('❌ Save error:', error);
-    
+
     return {
       success: false,
       error: error.message,
@@ -334,7 +338,7 @@ export const saveStepData = async (formData, step) => {
 /**
  * Generate dummy client data for testing
  * Creates a complete client object with sample data
- * 
+ *
  * @returns {Object} Dummy client data
  */
 export const generateDummyClientData = () => {
@@ -347,27 +351,27 @@ export const generateDummyClientData = () => {
     tfn: "123456789",
     email: "john.smith@example.com",
     contactNo: "+61412345678",
-    
+
     // Address Information
     addressResidential: "123 Main Street, Melbourne VIC 3000",
     addressPostal: "PO Box 456, Melbourne VIC 3001",
     residencyStatus: "CITIZEN",
-    
+
     // Family Information
     noOfDependentChildren: 2,
     spouseName: "Jane Smith",
     spouseDob: "1987-08-20",
-    
+
     // Primary Banking
     bankName: "Commonwealth Bank",
     accountName: "John Smith",
     bsb: "063-123",
     accountNumber: "12345678",
-    
+
     // Agreements
     agreeToTerms: true,
     agreeToPrivacy: true,
-    
+
     // Sole Trader with separate banking
     soleTrader: {
       abn: "12345678901",
@@ -381,7 +385,7 @@ export const generateDummyClientData = () => {
       bsb: "032-456",
       accountNumber: "98765432"
     },
-    
+
     // Companies
     companies: [{
       abn: "98765432101",
@@ -393,7 +397,7 @@ export const generateDummyClientData = () => {
       tradingNames: ["Tech Solutions Pty Ltd", "TS Digital"],
       asicIndustryCodes: ["6201", "6202"]
     }],
-    
+
     // Trusts
     trusts: [{
       abn: "11223344556",
@@ -405,7 +409,7 @@ export const generateDummyClientData = () => {
       tradingNames: ["Smith Family Trust"],
       asicIndustryCodes: ["6420"]
     }],
-    
+
     // SMSFs
     smsfs: [{
       abn: "55667788990",
@@ -416,7 +420,7 @@ export const generateDummyClientData = () => {
       tradingNames: ["Smith Super Fund"],
       asicIndustryCodes: ["6330"]
     }],
-    
+
     // Partnerships
     partnerships: [{
       abn: "44556677889",
@@ -424,22 +428,21 @@ export const generateDummyClientData = () => {
       businessAddress: "777 Partnership Plaza, Melbourne VIC 3000",
       tfn: "445566778",
       tradingNames: ["Smith & Associates"]
-    }],
-
+    }]
   };
 };
 
 /**
  * Register a new client (final submission)
  * Sends complete client data to the backend API
- * 
+ *
  * @param {Object} formData - Client form data
  * @returns {Promise<Object>} API response with success status and data/error
  */
 export const registerClient = async (formData) => {
   try {
     const payload = transformFormDataToDTO(formData);
-    
+
     console.log('🚀 Sending final registration data to API:', payload);
     console.log('📍 API Endpoint:', `${API_BASE_URL}/clients/register`);
 
@@ -461,7 +464,7 @@ export const registerClient = async (formData) => {
 
     const data = await response.json();
     console.log('✅ Registration successful:', data);
-    
+
     return {
       success: true,
       data: data,
@@ -470,7 +473,7 @@ export const registerClient = async (formData) => {
 
   } catch (error) {
     console.error('❌ Registration error:', error);
-    
+
     return {
       success: false,
       error: error.message,
@@ -482,14 +485,14 @@ export const registerClient = async (formData) => {
 /**
  * Get client by ID
  * Retrieves a client's information from the backend
- * 
+ *
  * @param {number} clientId - The client's ID
  * @returns {Promise<Object>} API response with client data
  */
 export const getClientById = async (clientId) => {
   try {
     console.log(`🔍 Fetching client with ID: ${clientId}`);
-    
+
     const response = await fetch(`${API_BASE_URL}/clients/${clientId}`, {
       method: 'GET',
       headers: {
@@ -504,7 +507,7 @@ export const getClientById = async (clientId) => {
 
     const data = await response.json();
     console.log('✅ Client data retrieved:', data);
-    
+
     return {
       success: true,
       data: data
@@ -512,7 +515,7 @@ export const getClientById = async (clientId) => {
 
   } catch (error) {
     console.error('❌ Fetch client error:', error);
-    
+
     return {
       success: false,
       error: error.message
@@ -523,7 +526,7 @@ export const getClientById = async (clientId) => {
 /**
  * Update client information
  * Updates an existing client's data
- * 
+ *
  * @param {number} clientId - The client's ID
  * @param {Object} formData - Updated client data
  * @returns {Promise<Object>} API response with updated data
@@ -531,7 +534,7 @@ export const getClientById = async (clientId) => {
 export const updateClient = async (clientId, formData) => {
   try {
     const payload = transformFormDataToDTO(formData);
-    
+
     console.log(`🔄 Updating client ${clientId}:`, payload);
 
     const response = await fetch(`${API_BASE_URL}/clients/${clientId}`, {
@@ -550,7 +553,7 @@ export const updateClient = async (clientId, formData) => {
 
     const data = await response.json();
     console.log('✅ Client updated successfully:', data);
-    
+
     return {
       success: true,
       data: data,
@@ -559,7 +562,7 @@ export const updateClient = async (clientId, formData) => {
 
   } catch (error) {
     console.error('❌ Update error:', error);
-    
+
     return {
       success: false,
       error: error.message,
@@ -571,7 +574,7 @@ export const updateClient = async (clientId, formData) => {
 /**
  * Delete client
  * Removes a client from the system
- * 
+ *
  * @param {number} clientId - The client's ID
  * @returns {Promise<Object>} API response confirming deletion
  */
@@ -591,7 +594,7 @@ export const deleteClient = async (clientId) => {
     }
 
     console.log('✅ Client deleted successfully');
-    
+
     return {
       success: true,
       message: 'Client deleted successfully'
@@ -599,7 +602,7 @@ export const deleteClient = async (clientId) => {
 
   } catch (error) {
     console.error('❌ Delete error:', error);
-    
+
     return {
       success: false,
       error: error.message,
@@ -611,7 +614,7 @@ export const deleteClient = async (clientId) => {
 /**
  * Get all clients
  * Retrieves a list of all clients
- * 
+ *
  * @returns {Promise<Object>} API response with list of clients
  */
 export const getAllClients = async () => {
@@ -631,7 +634,7 @@ export const getAllClients = async () => {
 
     const data = await response.json();
     console.log(`✅ Retrieved ${data.length} clients`);
-    
+
     return {
       success: true,
       data: data
@@ -639,7 +642,7 @@ export const getAllClients = async () => {
 
   } catch (error) {
     console.error('❌ Fetch all clients error:', error);
-    
+
     return {
       success: false,
       error: error.message
@@ -649,21 +652,23 @@ export const getAllClients = async () => {
 
 /**
  * Save individual business entity
- * 
- * @param {string} entityType - Type of entity (soleTrader, company, trust, smsf, partnership, property)
+ *
+ * @param {string} entityType - Type of entity (soleTrader, company, trust, smsf, partnership)
  * @param {Object} entityData - Entity data
  * @param {string} entityId - Optional entity ID for updates
+ * @param {number} clientId - Client ID to associate the entity with
  * @returns {Promise<Object>} API response
  */
-export const saveBusinessEntity = async (entityType, entityData, entityId = null) => {
+export const saveBusinessEntity = async (entityType, entityData, entityId = null, clientId = null) => {
   try {
     let endpoint = '';
     let payload = {};
-    
+
     switch(entityType) {
       case 'soleTrader':
         endpoint = `${API_BASE_URL}/clients/business-entities/sole-trader`;
         payload = {
+          clientId: clientId, // Include clientId
           abn: entityData.abn ? parseInt(entityData.abn) : null,
           gstRegistered: entityData.gstRegistered || false,
           tradingName: entityData.tradingNames?.filter(name => name.trim() !== '') || [],
@@ -676,11 +681,12 @@ export const saveBusinessEntity = async (entityType, entityData, entityId = null
           accountNumber: entityData.accountNumber || null
         };
         break;
-        
+
       case 'company':
         endpoint = `${API_BASE_URL}/clients/business-entities/company`;
         payload = {
           id: entityId,
+          clientId: clientId, // Include clientId
           abn: entityData.abn ? parseInt(entityData.abn) : null,
           acn: entityData.acn ? parseInt(entityData.acn) : null,
           gstRegistered: entityData.gstRegistered || false,
@@ -696,11 +702,12 @@ export const saveBusinessEntity = async (entityType, entityData, entityId = null
           accountNumber: entityData.accountNumber || null
         };
         break;
-        
+
       case 'trust':
         endpoint = `${API_BASE_URL}/clients/business-entities/trust`;
         payload = {
           id: entityId,
+          clientId: clientId, // Include clientId
           abn: entityData.abn ? parseInt(entityData.abn) : null,
           gstRegistered: entityData.gstRegistered || false,
           trustType: entityData.trustType || null,
@@ -716,11 +723,12 @@ export const saveBusinessEntity = async (entityType, entityData, entityId = null
           accountNumber: entityData.accountNumber || null
         };
         break;
-        
+
       case 'smsf':
         endpoint = `${API_BASE_URL}/clients/business-entities/smsf`;
         payload = {
           id: entityId,
+          clientId: clientId, // Include clientId
           abn: entityData.abn ? parseInt(entityData.abn) : null,
           gstRegistered: entityData.gstRegistered || false,
           businessAddress: entityData.businessAddress || null,
@@ -735,11 +743,12 @@ export const saveBusinessEntity = async (entityType, entityData, entityId = null
           accountNumber: entityData.accountNumber || null
         };
         break;
-        
+
       case 'partnership':
         endpoint = `${API_BASE_URL}/clients/business-entities/partnership`;
         payload = {
           id: entityId,
+          clientId: clientId, // Include clientId
           abn: entityData.abn ? parseInt(entityData.abn) : null,
           gstRegistered: entityData.gstRegistered || false,
           businessAddress: entityData.businessAddress || null,
@@ -776,7 +785,7 @@ export const saveBusinessEntity = async (entityType, entityData, entityId = null
 
     const data = await response.json();
     console.log(`✅ ${entityType} saved successfully:`, data);
-    
+
     return {
       success: true,
       data: data,
@@ -785,7 +794,7 @@ export const saveBusinessEntity = async (entityType, entityData, entityId = null
 
   } catch (error) {
     console.error(`❌ Error saving ${entityType}:`, error);
-    
+
     return {
       success: false,
       error: error.message,
@@ -796,7 +805,7 @@ export const saveBusinessEntity = async (entityType, entityData, entityId = null
 
 /**
  * Delete individual business entity
- * 
+ *
  * @param {string} entityType - Type of entity
  * @param {string} entityId - Entity ID to delete
  * @returns {Promise<Object>} API response
@@ -804,7 +813,7 @@ export const saveBusinessEntity = async (entityType, entityData, entityId = null
 export const deleteBusinessEntity = async (entityType, entityId) => {
   try {
     let endpoint = '';
-    
+
     switch(entityType) {
       case 'soleTrader':
         endpoint = `${API_BASE_URL}/clients/business-entities/sole-trader`;
@@ -841,7 +850,7 @@ export const deleteBusinessEntity = async (entityType, entityId) => {
     }
 
     console.log(`✅ ${entityType} deleted successfully`);
-    
+
     return {
       success: true,
       message: `${entityType} deleted successfully`
@@ -849,7 +858,7 @@ export const deleteBusinessEntity = async (entityType, entityId) => {
 
   } catch (error) {
     console.error(`❌ Error deleting ${entityType}:`, error);
-    
+
     return {
       success: false,
       error: error.message,

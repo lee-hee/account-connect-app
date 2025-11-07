@@ -9,9 +9,16 @@ const SMSFEntity = ({ smsfs, handlers, formData }) => {
 
   const handleSaveSMSF = async (index) => {
     const smsf = smsfs[index];
+
+    // Check if we have a clientId
+    if (!formData.clientId) {
+      alert('Please save personal information first to generate a client ID.');
+      return;
+    }
+
     setSavingIndex(index);
     
-    const result = await saveBusinessEntity('smsf', smsf, smsf.id);
+    const result = await saveBusinessEntity('smsf', smsf, smsf.id,formData.clientId);
     
     if (result.success) {
       if (result.data?.id && !smsf.id) {

@@ -9,9 +9,14 @@ const TrustEntity = ({ trusts, handlers, formData }) => {
 
   const handleSaveTrust = async (index) => {
     const trust = trusts[index];
+    // Check if we have a clientId
+    if (!formData.clientId) {
+      alert('Please save personal information first to generate a client ID.');
+      return;
+    }
     setSavingIndex(index);
     
-    const result = await saveBusinessEntity('trust', trust, trust.id);
+    const result = await saveBusinessEntity('trust', trust, trust.id,formData.clientId);
     
     if (result.success) {
       if (result.data?.id && !trust.id) {

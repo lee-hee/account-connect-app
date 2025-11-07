@@ -9,10 +9,17 @@ const CompanyEntity = ({ companies, handlers, formData }) => {
 
   const handleSaveCompany = async (index) => {
     const company = companies[index];
+
+    // Check if we have a clientId
+    if (!formData.clientId) {
+      alert('Please save personal information first to generate a client ID.');
+      return;
+    }
+
     setSavingIndex(index);
-    
-    const result = await saveBusinessEntity('company', company, company.id);
-    
+
+    const result = await saveBusinessEntity('company', company, company.id, formData.clientId);
+
     if (result.success) {
       // Update the company with the returned ID if it's a new entity
       if (result.data?.id && !company.id) {
@@ -22,7 +29,7 @@ const CompanyEntity = ({ companies, handlers, formData }) => {
     } else {
       alert(`Failed to save company: ${result.message}`);
     }
-    
+
     setSavingIndex(null);
   };
 

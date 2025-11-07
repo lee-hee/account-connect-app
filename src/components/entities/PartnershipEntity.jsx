@@ -9,9 +9,16 @@ const PartnershipEntity = ({ partnerships, handlers, formData }) => {
 
   const handleSavePartnership = async (index) => {
     const partnership = partnerships[index];
+
+    // Check if we have a clientId
+    if (!formData.clientId) {
+      alert('Please save personal information first to generate a client ID.');
+      return;
+    }
+
     setSavingIndex(index);
     
-    const result = await saveBusinessEntity('partnership', partnership, partnership.id);
+    const result = await saveBusinessEntity('partnership', partnership, partnership.id,formData.clientId);
     
     if (result.success) {
       if (result.data?.id && !partnership.id) {

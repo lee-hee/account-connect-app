@@ -9,8 +9,13 @@ const SoleTraderEntity = ({ soleTrader, handlers, formData }) => {
 
   const handleSaveSoleTrader = async () => {
     setIsSaving(true);
+    // Check if we have a clientId
+    if (!formData.clientId) {
+      alert('Please save personal information first to generate a client ID.');
+      return;
+    }
     
-    const result = await saveBusinessEntity('soleTrader', soleTrader, soleTrader.id);
+    const result = await saveBusinessEntity('soleTrader', soleTrader, soleTrader.id,formData.clientId);
     
     if (result.success) {
       if (result.data?.id && !soleTrader.id) {

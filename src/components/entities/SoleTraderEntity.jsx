@@ -25,21 +25,27 @@ const SoleTraderEntity = ({ soleTrader, handlers, formData }) => {
   };
 
   const handleDeleteSoleTrader = async () => {
+    // Only allow delete if sole trader has been saved (has an ID)
+    if (!soleTrader.id) {
+      alert('Please save the sole trader before deleting it, or use the Remove button to discard unsaved changes.');
+      return;
+    }
+
     if (!window.confirm('Are you sure you want to delete the sole trader?')) {
       return;
     }
-    
+
     setIsDeleting(true);
-    
+
     const result = await deleteBusinessEntity('soleTrader', soleTrader.id);
-    
+
     if (result.success) {
       handlers.removeSoleTrader();
       alert('Sole Trader deleted successfully!');
     } else {
       alert(`Failed to delete sole trader: ${result.message}`);
     }
-    
+
     setIsDeleting(false);
   };
 
@@ -60,59 +66,60 @@ const SoleTraderEntity = ({ soleTrader, handlers, formData }) => {
             <Plus size={16} className="mr-1" /> Add
           </button>
         ) : (
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={handleSaveSoleTrader}
-              disabled={isSaving}
-              className="flex items-center px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm disabled:opacity-50"
-            >
-              {isSaving ? (
-                <>
-                  <Loader2 size={14} className="mr-1 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save size={14} className="mr-1" />
-                  Save
-                </>
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={handleDeleteSoleTrader}
-              disabled={isDeleting}
-              className="flex items-center px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm disabled:opacity-50"
-            >
-              {isDeleting ? (
-                <>
-                  <Loader2 size={14} className="mr-1 animate-spin" />
-                  Deleting...
-                </>
-              ) : (
-                <>
-                  <Trash2 size={14} className="mr-1" />
-                  Delete
-                </>
-              )}
-            </button>
-          </div>
+            <div className="flex gap-2">
+              <button
+                  type="button"
+                  onClick={handleSaveSoleTrader}
+                  disabled={isSaving}
+                  className="flex items-center px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm disabled:opacity-50"
+              >
+                {isSaving ? (
+                    <>
+                      <Loader2 size={14} className="mr-1 animate-spin"/>
+                      Saving...
+                    </>
+                ) : (
+                    <>
+                      <Save size={14} className="mr-1"/>
+                      Save
+                    </>
+                )}
+              </button>
+              <button
+                  type="button"
+                  onClick={handleDeleteSoleTrader}
+                  disabled={isDeleting || !soleTrader?.id}
+                  className="flex items-center px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  title={!soleTrader?.id ? "Save the sole trader first before deleting" : "Delete sole trader"}
+              >
+                {isDeleting ? (
+                    <>
+                      <Loader2 size={14} className="mr-1 animate-spin"/>
+                      Deleting...
+                    </>
+                ) : (
+                    <>
+                      <Trash2 size={14} className="mr-1"/>
+                      Delete
+                    </>
+                )}
+              </button>
+            </div>
         )}
       </div>
-      
+
       {soleTrader && (
-        <div className="space-y-4 bg-gray-50 p-4 rounded-lg">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                ABN <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={soleTrader.abn}
-                onChange={(e) => handlers.updateSoleTrader('abn', e.target.value)}
-                placeholder="11 digits"
+          <div className="space-y-4 bg-gray-50 p-4 rounded-lg">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  ABN <span className="text-red-500">*</span>
+                </label>
+                <input
+                    type="text"
+                    value={soleTrader.abn}
+                    onChange={(e) => handlers.updateSoleTrader('abn', e.target.value)}
+                    placeholder="11 digits"
                 maxLength="11"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
               />

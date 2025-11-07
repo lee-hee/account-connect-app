@@ -27,27 +27,28 @@ const SMSFEntity = ({ smsfs, handlers, formData }) => {
 
   const handleDeleteSMSF = async (index) => {
     const smsf = smsfs[index];
-    
+
+    // Only allow delete if SMSF has been saved (has an ID)
     if (!smsf.id) {
-      handlers.removeSMSF(index);
+      alert('Please save the SMSF before deleting it, or use the Remove button to discard unsaved changes.');
       return;
     }
-    
+
     if (!window.confirm('Are you sure you want to delete this SMSF?')) {
       return;
     }
-    
+
     setDeletingIndex(index);
-    
+
     const result = await deleteBusinessEntity('smsf', smsf.id);
-    
+
     if (result.success) {
       handlers.removeSMSF(index);
       alert('SMSF deleted successfully!');
     } else {
       alert(`Failed to delete SMSF: ${result.message}`);
     }
-    
+
     setDeletingIndex(null);
   };
 
@@ -76,54 +77,55 @@ const SMSFEntity = ({ smsfs, handlers, formData }) => {
             </h4>
             <div className="flex gap-2">
               <button
-                type="button"
-                onClick={() => handleSaveSMSF(idx)}
-                disabled={savingIndex === idx}
-                className="flex items-center px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm disabled:opacity-50"
+                  type="button"
+                  onClick={() => handleSaveSMSF(idx)}
+                  disabled={savingIndex === idx}
+                  className="flex items-center px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm disabled:opacity-50"
               >
                 {savingIndex === idx ? (
-                  <>
-                    <Loader2 size={14} className="mr-1 animate-spin" />
-                    Saving...
-                  </>
+                    <>
+                      <Loader2 size={14} className="mr-1 animate-spin"/>
+                      Saving...
+                    </>
                 ) : (
-                  <>
-                    <Save size={14} className="mr-1" />
-                    Save
-                  </>
+                    <>
+                      <Save size={14} className="mr-1"/>
+                      Save
+                    </>
                 )}
               </button>
               <button
-                type="button"
-                onClick={() => handleDeleteSMSF(idx)}
-                disabled={deletingIndex === idx}
-                className="flex items-center px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm disabled:opacity-50"
+                  type="button"
+                  onClick={() => handleDeleteSMSF(idx)}
+                  disabled={deletingIndex === idx || !smsf.id}
+                  className="flex items-center px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  title={!smsf.id ? "Save the SMSF first before deleting" : "Delete SMSF"}
               >
                 {deletingIndex === idx ? (
-                  <>
-                    <Loader2 size={14} className="mr-1 animate-spin" />
-                    Deleting...
-                  </>
+                    <>
+                      <Loader2 size={14} className="mr-1 animate-spin"/>
+                      Deleting...
+                    </>
                 ) : (
-                  <>
-                    <Trash2 size={14} className="mr-1" />
-                    Delete
-                  </>
+                    <>
+                      <Trash2 size={14} className="mr-1"/>
+                      Delete
+                    </>
                 )}
               </button>
             </div>
           </div>
-          
+
           <div className="space-y-3">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">ABN</label>
                 <input
-                  type="text"
-                  value={smsf.abn}
-                  onChange={(e) => handlers.updateSMSF(idx, 'abn', e.target.value)}
-                  maxLength="11"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    type="text"
+                    value={smsf.abn}
+                    onChange={(e) => handlers.updateSMSF(idx, 'abn', e.target.value)}
+                    maxLength="11"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                 />
               </div>
               <div>

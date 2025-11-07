@@ -126,13 +126,7 @@ const transformFormDataToDTO = (formData) => {
       bsb: partnership.bsb || null,
       accountNumber: partnership.accountNumber || null
     })),
-    
-    // Investment Properties (Many-to-Many relationship)
-    investmentProperties: (formData.investmentProperties || []).map(property => ({
-      address: property.address,
-      purchaseValue: property.purchaseValue ? parseFloat(property.purchaseValue) : null,
-      mortgageLenderName: property.mortgageLenderName || null
-    }))
+
   };
 };
 
@@ -277,13 +271,7 @@ export const saveStepData = async (formData, step) => {
             bsb: partnership.bsb || null,
             accountNumber: partnership.accountNumber || null
           })),
-          
-          // Investment Properties
-          investmentProperties: (formData.investmentProperties || []).map(property => ({
-            address: property.address,
-            purchaseValue: property.purchaseValue ? parseFloat(property.purchaseValue) : null,
-            mortgageLenderName: property.mortgageLenderName || null
-          }))
+
         };
         break;
         
@@ -437,20 +425,7 @@ export const generateDummyClientData = () => {
       tfn: "445566778",
       tradingNames: ["Smith & Associates"]
     }],
-    
-    // Investment Properties
-    investmentProperties: [
-      {
-        address: "45 Investment Street, Sydney NSW 2000",
-        purchaseValue: "850000",
-        mortgageLenderName: "Commonwealth Bank"
-      },
-      {
-        address: "12 Rental Avenue, Brisbane QLD 4000",
-        purchaseValue: "650000",
-        mortgageLenderName: "Westpac"
-      }
-    ]
+
   };
 };
 
@@ -777,17 +752,7 @@ export const saveBusinessEntity = async (entityType, entityData, entityId = null
           accountNumber: entityData.accountNumber || null
         };
         break;
-        
-      case 'property':
-        endpoint = `${API_BASE_URL}/clients/business-entities/investment-property`;
-        payload = {
-          id: entityId,
-          address: entityData.address,
-          purchaseValue: entityData.purchaseValue ? parseFloat(entityData.purchaseValue) : null,
-          mortgageLenderName: entityData.mortgageLenderName || null
-        };
-        break;
-        
+
       default:
         throw new Error(`Unknown entity type: ${entityType}`);
     }
@@ -855,9 +820,6 @@ export const deleteBusinessEntity = async (entityType, entityId) => {
         break;
       case 'partnership':
         endpoint = `${API_BASE_URL}/clients/business-entities/partnership/${entityId}`;
-        break;
-      case 'property':
-        endpoint = `${API_BASE_URL}/clients/business-entities/investment-property/${entityId}`;
         break;
       default:
         throw new Error(`Unknown entity type: ${entityType}`);

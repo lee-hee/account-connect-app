@@ -35,19 +35,28 @@ const ClientRegistrationForm = () => {
       return; // Don't proceed if validation fails
     }
 
-    // Save current step data to backend
+    // Skip saving for step 5 (Business Entities) - entities are saved individually
+    if (currentStep === 5) {
+      // Just move to next step without saving
+      if (currentStep < 7) {
+        setCurrentStep(currentStep + 1);
+      }
+      return;
+    }
+
+    // Save current step data to backend for all other steps
     setIsSaving(true);
     setSaveStatus('saving');
-    
+
     const saveResult = await saveStepData(formData, currentStep);
-    
+
     if (saveResult.success) {
       setSaveStatus('saved');
       console.log(`✅ Step ${currentStep} data saved successfully`);
-      
+
       // Clear save status after 2 seconds
       setTimeout(() => setSaveStatus(null), 2000);
-      
+
       // Move to next step
       if (currentStep < 7) {
         setCurrentStep(currentStep + 1);
@@ -55,19 +64,18 @@ const ClientRegistrationForm = () => {
     } else {
       setSaveStatus('error');
       console.error('❌ Save failed:', saveResult.error);
-      
+
       // Show error for 3 seconds
       setTimeout(() => setSaveStatus(null), 3000);
-      
+
       // Still allow user to proceed (optional - you can block here if needed)
       if (currentStep < 7) {
         setCurrentStep(currentStep + 1);
       }
     }
-    
+
     setIsSaving(false);
   };
-
   const handlePrevious = () => {
     if (currentStep > 1) setCurrentStep(currentStep - 1);
   };

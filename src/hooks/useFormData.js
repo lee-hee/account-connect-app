@@ -26,8 +26,7 @@ export const useFormData = () => {
     companies: [],
     trusts: [],
     smsfs: [],
-    partnerships: [],
-    investmentProperties: []
+    partnerships: []
   });
 
   const handleInputChange = (e, setErrors) => {

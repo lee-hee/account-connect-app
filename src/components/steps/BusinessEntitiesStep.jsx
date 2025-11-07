@@ -4,13 +4,12 @@ import { useCompanies } from '../../hooks/useCompanies';
 import { useTrusts } from '../../hooks/useTrusts';
 import { useSMSFs } from '../../hooks/useSMSFs';
 import { usePartnerships } from '../../hooks/usePartnerships';
-import { useInvestmentProperties } from '../../hooks/useInvestmentProperties';
 import SoleTraderEntity from '../entities/SoleTraderEntity';
 import CompanyEntity from '../entities/CompanyEntity';
 import TrustEntity from '../entities/TrustEntity';
 import SMSFEntity from '../entities/SMSFEntity';
 import PartnershipEntity from '../entities/PartnershipEntity';
-import InvestmentPropertyEntity from '../entities/InvestmentPropertyEntity';
+
 
 const BusinessEntitiesStep = ({ formData, setFormData }) => {
   const soleTraderHandlers = useSoleTrader(formData, setFormData);
@@ -18,7 +17,6 @@ const BusinessEntitiesStep = ({ formData, setFormData }) => {
   const trustHandlers = useTrusts(formData, setFormData);
   const smsfHandlers = useSMSFs(formData, setFormData);
   const partnershipHandlers = usePartnerships(formData, setFormData);
-  const propertyHandlers = useInvestmentProperties(formData, setFormData);
 
   return (
     <div className="space-y-6">
@@ -53,11 +51,6 @@ const BusinessEntitiesStep = ({ formData, setFormData }) => {
         handlers={partnershipHandlers}
         formData={formData}
       />
-      
-      {/*<InvestmentPropertyEntity */}
-      {/*  properties={formData.investmentProperties}*/}
-      {/*  handlers={propertyHandlers}*/}
-      {/*/>*/}
 
       <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
         <p className="text-sm text-blue-800">

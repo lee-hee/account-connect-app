@@ -102,7 +102,7 @@ const PreviewStep = ({ formData }) => {
 
       {/* Business Entities */}
       {(formData.soleTrader || formData.companies?.length > 0 || formData.trusts?.length > 0 || 
-        formData.smsfs?.length > 0 || formData.partnerships?.length > 0 || formData.investmentProperties?.length > 0) && (
+        formData.smsfs?.length > 0 || formData.partnerships?.length > 0) && (
         <InfoSection title="Business Entities & Investments" icon={Briefcase}>
           {/* Sole Trader */}
           {formData.soleTrader && (
@@ -250,22 +250,6 @@ const PreviewStep = ({ formData }) => {
                         <p className="text-xs text-indigo-600">Using primary banking details</p>
                       </div>
                     )}
-                  </div>
-                </EntityCard>
-              ))}
-            </div>
-          )}
-
-          {/* Investment Properties */}
-          {formData.investmentProperties?.length > 0 && (
-            <div className="mb-4">
-              <h4 className="text-sm font-semibold text-gray-700 mb-3">Investment Properties ({formData.investmentProperties.length})</h4>
-              {formData.investmentProperties.map((property, idx) => (
-                <EntityCard key={idx} title="Property" index={idx}>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                    <InfoRow label="Address" value={property.address} fullWidth />
-                    <InfoRow label="Purchase Value" value={property.purchaseValue ? `$${property.purchaseValue}` : null} />
-                    <InfoRow label="Mortgage Lender" value={property.mortgageLenderName} />
                   </div>
                 </EntityCard>
               ))}

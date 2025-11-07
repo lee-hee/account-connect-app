@@ -28,28 +28,28 @@ const CompanyEntity = ({ companies, handlers, formData }) => {
 
   const handleDeleteCompany = async (index) => {
     const company = companies[index];
-    
+
+    // Only allow delete if company has been saved (has an ID)
     if (!company.id) {
-      // If no ID, just remove from UI (not saved to backend yet)
-      handlers.removeCompany(index);
+      alert('Please save the company before deleting it, or use the Remove button to discard unsaved changes.');
       return;
     }
-    
+
     if (!window.confirm('Are you sure you want to delete this company?')) {
       return;
     }
-    
+
     setDeletingIndex(index);
-    
+
     const result = await deleteBusinessEntity('company', company.id);
-    
+
     if (result.success) {
       handlers.removeCompany(index);
       alert('Company deleted successfully!');
     } else {
       alert(`Failed to delete company: ${result.message}`);
     }
-    
+
     setDeletingIndex(null);
   };
 
@@ -78,54 +78,55 @@ const CompanyEntity = ({ companies, handlers, formData }) => {
             </h4>
             <div className="flex gap-2">
               <button
-                type="button"
-                onClick={() => handleSaveCompany(idx)}
-                disabled={savingIndex === idx}
-                className="flex items-center px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm disabled:opacity-50"
+                  type="button"
+                  onClick={() => handleSaveCompany(idx)}
+                  disabled={savingIndex === idx}
+                  className="flex items-center px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm disabled:opacity-50"
               >
                 {savingIndex === idx ? (
-                  <>
-                    <Loader2 size={14} className="mr-1 animate-spin" />
-                    Saving...
-                  </>
+                    <>
+                      <Loader2 size={14} className="mr-1 animate-spin"/>
+                      Saving...
+                    </>
                 ) : (
-                  <>
-                    <Save size={14} className="mr-1" />
-                    Save
-                  </>
+                    <>
+                      <Save size={14} className="mr-1"/>
+                      Save
+                    </>
                 )}
               </button>
               <button
-                type="button"
-                onClick={() => handleDeleteCompany(idx)}
-                disabled={deletingIndex === idx}
-                className="flex items-center px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm disabled:opacity-50"
+                  type="button"
+                  onClick={() => handleDeleteCompany(idx)}
+                  disabled={deletingIndex === idx || !company.id}
+                  className="flex items-center px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  title={!company.id ? "Save the company first before deleting" : "Delete company"}
               >
                 {deletingIndex === idx ? (
-                  <>
-                    <Loader2 size={14} className="mr-1 animate-spin" />
-                    Deleting...
-                  </>
+                    <>
+                      <Loader2 size={14} className="mr-1 animate-spin"/>
+                      Deleting...
+                    </>
                 ) : (
-                  <>
-                    <Trash2 size={14} className="mr-1" />
-                    Delete
-                  </>
+                    <>
+                      <Trash2 size={14} className="mr-1"/>
+                      Delete
+                    </>
                 )}
               </button>
             </div>
           </div>
-          
+
           <div className="space-y-3">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">ABN</label>
                 <input
-                  type="text"
-                  value={company.abn}
-                  onChange={(e) => handlers.updateCompany(idx, 'abn', e.target.value)}
-                  maxLength="11"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    type="text"
+                    value={company.abn}
+                    onChange={(e) => handlers.updateCompany(idx, 'abn', e.target.value)}
+                    maxLength="11"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                 />
               </div>
               <div>

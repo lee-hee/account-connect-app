@@ -867,8 +867,94 @@ export const deleteBusinessEntity = async (entityType, entityId) => {
   }
 };
 
+/**
+ * Login user (with multiple dummy users for testing)
+ * Authenticates user and returns user data with registration status
+ *
+ * @param {string} email - User email
+ * @param {string} password - User password
+ * @returns {Promise<Object>} API response with user data
+ */
+export const loginUser = async (email, password) => {
+  try {
+    console.log('🔐 Logging in user:', email);
+
+    // ========== DUMMY RESPONSE FOR TESTING ==========
+
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // Define dummy users for different test scenarios
+    const dummyUsers = {
+      // User with incomplete registration
+      'incomplete@test.com': {
+        success: true,
+        clientId: null, // No clientId yet - will be generated during registration
+        email: 'incomplete@test.com',
+        firstName: null,
+        lastName: null,
+        registrationCompleted: false,
+        token: 'dummy-jwt-token-incomplete-user'
+      },
+
+      // User with registration in progress (has clientId but not completed)
+      'inprogress@test.com': {
+        success: true,
+        clientId: 12345,
+        email: 'inprogress@test.com',
+        firstName: 'Jane',
+        lastName: 'Doe',
+        registrationCompleted: false,
+        token: 'dummy-jwt-token-inprogress-user'
+      },
+
+      // User with completed registration
+      'complete@test.com': {
+        success: true,
+        clientId: 67890,
+        email: 'complete@test.com',
+        firstName: 'John',
+        lastName: 'Smith',
+        registrationCompleted: true,
+        token: 'dummy-jwt-token-complete-user'
+      }
+    };
+
+    // Check if user exists in dummy data
+    const userData = dummyUsers[email.toLowerCase()];
+
+    if (!userData) {
+      // Simulate invalid credentials
+      throw new Error('Invalid email or password');
+    }
+
+    // Simple password check (in real app, this would be secure)
+    if (password.length < 6) {
+      throw new Error('Invalid email or password');
+    }
+
+    console.log('✅ Login successful (DUMMY DATA):', userData);
+
+    return {
+      success: true,
+      data: userData
+    };
+
+    // ========== END DUMMY RESPONSE ==========
+
+  } catch (error) {
+    console.error('❌ Login error:', error);
+
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+};
+
 // Export all functions as default
 export default {
+  loginUser,
   saveStepData,
   registerClient,
   getClientById,

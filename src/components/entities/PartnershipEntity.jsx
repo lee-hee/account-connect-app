@@ -1,8 +1,57 @@
-import React from 'react';
-import { User, Plus, Trash2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { User, Plus, Trash2, Save, Loader2 } from 'lucide-react';
 import BankingDetailsSelector from './BankingDetailsSelector';
+import { saveBusinessEntity, deleteBusinessEntity } from '../../services/api';
 
 const PartnershipEntity = ({ partnerships, handlers, formData }) => {
+  const [savingIndex, setSavingIndex] = useState(null);
+  const [deletingIndex, setDeletingIndex] = useState(null);
+
+  const handleSavePartnership = async (index) => {
+    const partnership = partnerships[index];
+    setSavingIndex(index);
+    
+    const result = await saveBusinessEntity('partnership', partnership, partnership.id);
+    
+    if (result.success) {
+      if (result.data?.id && !partnership.id) {
+        handlers.updatePartnership(index, 'id', result.data.id);
+      }
+      alert('Partnership saved successfully!');
+    } else {
+      alert(`Failed to save partnership: ${result.message}`);
+    }
+    
+    setSavingIndex(null);
+  };
+
+  const handleDeletePartnership = async (index) => {
+    const partnership = partnerships[index];
+    
+    if (!partnership.id) {
+      // If no ID, just remove from UI (not saved to backend yet)
+      handlers.removePartnership(index);
+      return;
+    }
+    
+    if (!window.confirm('Are you sure you want to delete this partnership?')) {
+      return;
+    }
+    
+    setDeletingIndex(index);
+    
+    const result = await deleteBusinessEntity('partnership', partnership.id);
+    
+    if (result.success) {
+      handlers.removePartnership(index);
+      alert('Partnership deleted successfully!');
+    } else {
+      alert(`Failed to delete partnership: ${result.message}`);
+    }
+    
+    setDeletingIndex(null);
+  };
+
   return (
     <div className="border border-gray-200 rounded-lg p-4">
       <div className="flex justify-between items-center mb-4">
@@ -22,14 +71,48 @@ const PartnershipEntity = ({ partnerships, handlers, formData }) => {
       {partnerships.map((partnership, idx) => (
         <div key={idx} className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
           <div className="flex justify-between items-center mb-3">
-            <h4 className="font-medium text-gray-700">Partnership {idx + 1}</h4>
-            <button
-              type="button"
-              onClick={() => handlers.removePartnership(idx)}
-              className="text-red-600 hover:text-red-700"
-            >
-              <Trash2 size={18} />
-            </button>
+            <h4 className="font-medium text-gray-700">
+              Partnership {idx + 1}
+              {partnership.id && <span className="ml-2 text-xs text-green-600">(Saved)</span>}
+            </h4>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => handleSavePartnership(idx)}
+                disabled={savingIndex === idx}
+                className="flex items-center px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm disabled:opacity-50"
+              >
+                {savingIndex === idx ? (
+                  <>
+                    <Loader2 size={14} className="mr-1 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save size={14} className="mr-1" />
+                    Save
+                  </>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDeletePartnership(idx)}
+                disabled={deletingIndex === idx}
+                className="flex items-center px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm disabled:opacity-50"
+              >
+                {deletingIndex === idx ? (
+                  <>
+                    <Loader2 size={14} className="mr-1 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={14} className="mr-1" />
+                    Delete
+                  </>
+                )}
+              </button>
+            </div>
           </div>
           
           <div className="space-y-3">

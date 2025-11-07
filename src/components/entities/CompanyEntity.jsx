@@ -1,8 +1,58 @@
-import React from 'react';
-import { Building2, Plus, Trash2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Building2, Plus, Trash2, Save, Loader2 } from 'lucide-react';
 import BankingDetailsSelector from './BankingDetailsSelector';
+import { saveBusinessEntity, deleteBusinessEntity } from '../../services/api';
 
 const CompanyEntity = ({ companies, handlers, formData }) => {
+  const [savingIndex, setSavingIndex] = useState(null);
+  const [deletingIndex, setDeletingIndex] = useState(null);
+
+  const handleSaveCompany = async (index) => {
+    const company = companies[index];
+    setSavingIndex(index);
+    
+    const result = await saveBusinessEntity('company', company, company.id);
+    
+    if (result.success) {
+      // Update the company with the returned ID if it's a new entity
+      if (result.data?.id && !company.id) {
+        handlers.updateCompany(index, 'id', result.data.id);
+      }
+      alert('Company saved successfully!');
+    } else {
+      alert(`Failed to save company: ${result.message}`);
+    }
+    
+    setSavingIndex(null);
+  };
+
+  const handleDeleteCompany = async (index) => {
+    const company = companies[index];
+    
+    if (!company.id) {
+      // If no ID, just remove from UI (not saved to backend yet)
+      handlers.removeCompany(index);
+      return;
+    }
+    
+    if (!window.confirm('Are you sure you want to delete this company?')) {
+      return;
+    }
+    
+    setDeletingIndex(index);
+    
+    const result = await deleteBusinessEntity('company', company.id);
+    
+    if (result.success) {
+      handlers.removeCompany(index);
+      alert('Company deleted successfully!');
+    } else {
+      alert(`Failed to delete company: ${result.message}`);
+    }
+    
+    setDeletingIndex(null);
+  };
+
   return (
     <div className="border border-gray-200 rounded-lg p-4">
       <div className="flex justify-between items-center mb-4">
@@ -22,14 +72,48 @@ const CompanyEntity = ({ companies, handlers, formData }) => {
       {companies.map((company, idx) => (
         <div key={idx} className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
           <div className="flex justify-between items-center mb-3">
-            <h4 className="font-medium text-gray-700">Company {idx + 1}</h4>
-            <button
-              type="button"
-              onClick={() => handlers.removeCompany(idx)}
-              className="text-red-600 hover:text-red-700"
-            >
-              <Trash2 size={18} />
-            </button>
+            <h4 className="font-medium text-gray-700">
+              Company {idx + 1} 
+              {company.id && <span className="ml-2 text-xs text-green-600">(Saved)</span>}
+            </h4>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => handleSaveCompany(idx)}
+                disabled={savingIndex === idx}
+                className="flex items-center px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm disabled:opacity-50"
+              >
+                {savingIndex === idx ? (
+                  <>
+                    <Loader2 size={14} className="mr-1 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save size={14} className="mr-1" />
+                    Save
+                  </>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDeleteCompany(idx)}
+                disabled={deletingIndex === idx}
+                className="flex items-center px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm disabled:opacity-50"
+              >
+                {deletingIndex === idx ? (
+                  <>
+                    <Loader2 size={14} className="mr-1 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={14} className="mr-1" />
+                    Delete
+                  </>
+                )}
+              </button>
+            </div>
           </div>
           
           <div className="space-y-3">

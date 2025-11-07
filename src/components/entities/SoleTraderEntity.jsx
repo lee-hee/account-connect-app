@@ -1,14 +1,55 @@
-import React from 'react';
-import { Building2, Plus, Trash2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Building2, Plus, Trash2, Save, Loader2 } from 'lucide-react';
 import BankingDetailsSelector from './BankingDetailsSelector';
+import { saveBusinessEntity, deleteBusinessEntity } from '../../services/api';
 
 const SoleTraderEntity = ({ soleTrader, handlers, formData }) => {
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleSaveSoleTrader = async () => {
+    setIsSaving(true);
+    
+    const result = await saveBusinessEntity('soleTrader', soleTrader, soleTrader.id);
+    
+    if (result.success) {
+      if (result.data?.id && !soleTrader.id) {
+        handlers.updateSoleTrader('id', result.data.id);
+      }
+      alert('Sole Trader saved successfully!');
+    } else {
+      alert(`Failed to save sole trader: ${result.message}`);
+    }
+    
+    setIsSaving(false);
+  };
+
+  const handleDeleteSoleTrader = async () => {
+    if (!window.confirm('Are you sure you want to delete the sole trader?')) {
+      return;
+    }
+    
+    setIsDeleting(true);
+    
+    const result = await deleteBusinessEntity('soleTrader', soleTrader.id);
+    
+    if (result.success) {
+      handlers.removeSoleTrader();
+      alert('Sole Trader deleted successfully!');
+    } else {
+      alert(`Failed to delete sole trader: ${result.message}`);
+    }
+    
+    setIsDeleting(false);
+  };
+
   return (
     <div className="border border-gray-200 rounded-lg p-4">
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-semibold text-gray-700 flex items-center">
           <Building2 className="mr-2" size={20} />
           Sole Trader {soleTrader && <span className="ml-2 text-sm text-green-600">(Active)</span>}
+          {soleTrader?.id && <span className="ml-2 text-xs text-green-600">(Saved)</span>}
         </h3>
         {!soleTrader ? (
           <button
@@ -19,13 +60,44 @@ const SoleTraderEntity = ({ soleTrader, handlers, formData }) => {
             <Plus size={16} className="mr-1" /> Add
           </button>
         ) : (
-          <button
-            type="button"
-            onClick={handlers.removeSoleTrader}
-            className="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
-          >
-            <Trash2 size={16} className="mr-1" /> Remove
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={handleSaveSoleTrader}
+              disabled={isSaving}
+              className="flex items-center px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm disabled:opacity-50"
+            >
+              {isSaving ? (
+                <>
+                  <Loader2 size={14} className="mr-1 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save size={14} className="mr-1" />
+                  Save
+                </>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={handleDeleteSoleTrader}
+              disabled={isDeleting}
+              className="flex items-center px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm disabled:opacity-50"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 size={14} className="mr-1 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 size={14} className="mr-1" />
+                  Delete
+                </>
+              )}
+            </button>
+          </div>
         )}
       </div>
       

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronRight, ChevronLeft, User, Home, Briefcase, CheckCircle, DollarSign, FileCheck } from 'lucide-react';
+import { ChevronRight, ChevronLeft, User, Home, Briefcase, CheckCircle, DollarSign, FileCheck, Loader2 } from 'lucide-react';
 import { useFormData } from '../hooks/useFormData';
 import { validateStep } from '../utils/validation';
 import ProgressSteps from './ProgressSteps';
@@ -8,12 +8,15 @@ import FinancialDetailsStep from './steps/FinancialDetailsStep';
 import AddressStep from './steps/AddressStep';
 import FamilyStep from './steps/FamilyStep';
 import BusinessEntitiesStep from './steps/BusinessEntitiesStep';
+import PreviewStep from './steps/PreviewStep';
 import AgreementsStep from './steps/AgreementsStep';
-import { registerClient } from '../services/api';
+import { registerClient, saveStepData } from '../services/api';
 
 const ClientRegistrationForm = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [errors, setErrors] = useState({});
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState(null); // Track save status for feedback
   const { formData, setFormData, handleInputChange } = useFormData();
 
   const steps = [
@@ -22,13 +25,47 @@ const ClientRegistrationForm = () => {
     { number: 3, title: 'Address & Residency', icon: Home },
     { number: 4, title: 'Family Details', icon: User },
     { number: 5, title: 'Business Entities', icon: Briefcase },
-    { number: 6, title: 'Agreements', icon: FileCheck }
+    { number: 6, title: 'Review', icon: CheckCircle },
+    { number: 7, title: 'Agreements', icon: FileCheck }
   ];
 
-  const handleNext = () => {
-    if (validateStep(currentStep, formData, setErrors) && currentStep < 6) {
-      setCurrentStep(currentStep + 1);
+  const handleNext = async () => {
+    // Validate current step
+    if (!validateStep(currentStep, formData, setErrors)) {
+      return; // Don't proceed if validation fails
     }
+
+    // Save current step data to backend
+    setIsSaving(true);
+    setSaveStatus('saving');
+    
+    const saveResult = await saveStepData(formData, currentStep);
+    
+    if (saveResult.success) {
+      setSaveStatus('saved');
+      console.log(`✅ Step ${currentStep} data saved successfully`);
+      
+      // Clear save status after 2 seconds
+      setTimeout(() => setSaveStatus(null), 2000);
+      
+      // Move to next step
+      if (currentStep < 7) {
+        setCurrentStep(currentStep + 1);
+      }
+    } else {
+      setSaveStatus('error');
+      console.error('❌ Save failed:', saveResult.error);
+      
+      // Show error for 3 seconds
+      setTimeout(() => setSaveStatus(null), 3000);
+      
+      // Still allow user to proceed (optional - you can block here if needed)
+      if (currentStep < 7) {
+        setCurrentStep(currentStep + 1);
+      }
+    }
+    
+    setIsSaving(false);
   };
 
   const handlePrevious = () => {
@@ -37,17 +74,26 @@ const ClientRegistrationForm = () => {
 
   const handleSubmit = async () => {
     if (validateStep(currentStep, formData, setErrors)) {
-     //setIsSubmitting(true);
-    const result = await registerClient(formData); // ← API CALL HERE!
+      setIsSaving(true);
+      setSaveStatus('saving');
+      
+      // Final registration with complete data
+      const result = await registerClient(formData);
       
       if (result.success) {
-         console.log('all good :');
+        console.log('✅ Registration completed successfully');
+        setSaveStatus('completed');
+        
+        // Success handling
+        alert('Registration completed successfully!');
       } else {
-         console.log('bad good :');
+        console.error('❌ Registration failed:', result.error);
+        setSaveStatus('error');
+        alert(`Registration failed: ${result.message}`);
       }
       
-     // setIsSubmitting(false);
-        }
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -56,6 +102,41 @@ const ClientRegistrationForm = () => {
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-800 mb-2">Client Registration</h1>
           <p className="text-gray-600">Please complete all sections to register a new client</p>
+          
+          {/* Save Status Indicator */}
+          {saveStatus && (
+            <div className={`mt-4 inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium ${
+              saveStatus === 'saving' ? 'bg-blue-100 text-blue-800' :
+              saveStatus === 'saved' ? 'bg-green-100 text-green-800' :
+              saveStatus === 'error' ? 'bg-red-100 text-red-800' :
+              saveStatus === 'completed' ? 'bg-green-100 text-green-800' :
+              'bg-gray-100 text-gray-800'
+            }`}>
+              {saveStatus === 'saving' && (
+                <>
+                  <Loader2 className="animate-spin mr-2" size={16} />
+                  Saving...
+                </>
+              )}
+              {saveStatus === 'saved' && (
+                <>
+                  <CheckCircle className="mr-2" size={16} />
+                  Saved successfully
+                </>
+              )}
+              {saveStatus === 'error' && (
+                <>
+                  ⚠️ Save failed (continuing anyway)
+                </>
+              )}
+              {saveStatus === 'completed' && (
+                <>
+                  <CheckCircle className="mr-2" size={16} />
+                  Registration completed!
+                </>
+              )}
+            </div>
+          )}
         </div>
 
         <ProgressSteps steps={steps} currentStep={currentStep} />
@@ -101,6 +182,12 @@ const ClientRegistrationForm = () => {
             )}
 
             {currentStep === 6 && (
+              <PreviewStep 
+                formData={formData}
+              />
+            )}
+
+            {currentStep === 7 && (
               <AgreementsStep 
                 formData={formData} 
                 errors={errors}
@@ -123,23 +210,51 @@ const ClientRegistrationForm = () => {
                 Previous
               </button>
 
-              {currentStep < 6 ? (
+              {currentStep < 7 ? (
                 <button
                   type="button"
                   onClick={handleNext}
-                  className="flex items-center px-6 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-all"
+                  disabled={isSaving}
+                  className={`flex items-center px-6 py-2 rounded-lg font-medium transition-all ${
+                    isSaving 
+                      ? 'bg-indigo-400 cursor-not-allowed' 
+                      : 'bg-indigo-600 hover:bg-indigo-700'
+                  } text-white`}
                 >
-                  Next
-                  <ChevronRight size={20} className="ml-2" />
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="animate-spin mr-2" size={20} />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      Next
+                      <ChevronRight size={20} className="ml-2" />
+                    </>
+                  )}
                 </button>
               ) : (
                 <button
                   type="button"
                   onClick={handleSubmit}
-                  className="flex items-center px-6 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-all"
+                  disabled={isSaving}
+                  className={`flex items-center px-6 py-2 rounded-lg font-medium transition-all ${
+                    isSaving
+                      ? 'bg-green-400 cursor-not-allowed'
+                      : 'bg-green-600 hover:bg-green-700'
+                  } text-white`}
                 >
-                  Submit Registration
-                  <CheckCircle size={20} className="ml-2" />
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="animate-spin mr-2" size={20} />
+                      Submitting...
+                    </>
+                  ) : (
+                    <>
+                      Submit Registration
+                      <CheckCircle size={20} className="ml-2" />
+                    </>
+                  )}
                 </button>
               )}
             </div>
@@ -147,7 +262,7 @@ const ClientRegistrationForm = () => {
         </div>
 
         <div className="text-center mt-6 text-gray-600 text-sm">
-          Step {currentStep} of 6
+          Step {currentStep} of 7
         </div>
       </div>
     </div>

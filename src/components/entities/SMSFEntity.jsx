@@ -1,8 +1,56 @@
-import React from 'react';
-import { Landmark, Plus, Trash2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Landmark, Plus, Trash2, Save, Loader2 } from 'lucide-react';
 import BankingDetailsSelector from './BankingDetailsSelector';
+import { saveBusinessEntity, deleteBusinessEntity } from '../../services/api';
 
 const SMSFEntity = ({ smsfs, handlers, formData }) => {
+  const [savingIndex, setSavingIndex] = useState(null);
+  const [deletingIndex, setDeletingIndex] = useState(null);
+
+  const handleSaveSMSF = async (index) => {
+    const smsf = smsfs[index];
+    setSavingIndex(index);
+    
+    const result = await saveBusinessEntity('smsf', smsf, smsf.id);
+    
+    if (result.success) {
+      if (result.data?.id && !smsf.id) {
+        handlers.updateSMSF(index, 'id', result.data.id);
+      }
+      alert('SMSF saved successfully!');
+    } else {
+      alert(`Failed to save SMSF: ${result.message}`);
+    }
+    
+    setSavingIndex(null);
+  };
+
+  const handleDeleteSMSF = async (index) => {
+    const smsf = smsfs[index];
+    
+    if (!smsf.id) {
+      handlers.removeSMSF(index);
+      return;
+    }
+    
+    if (!window.confirm('Are you sure you want to delete this SMSF?')) {
+      return;
+    }
+    
+    setDeletingIndex(index);
+    
+    const result = await deleteBusinessEntity('smsf', smsf.id);
+    
+    if (result.success) {
+      handlers.removeSMSF(index);
+      alert('SMSF deleted successfully!');
+    } else {
+      alert(`Failed to delete SMSF: ${result.message}`);
+    }
+    
+    setDeletingIndex(null);
+  };
+
   return (
     <div className="border border-gray-200 rounded-lg p-4">
       <div className="flex justify-between items-center mb-4">
@@ -22,14 +70,48 @@ const SMSFEntity = ({ smsfs, handlers, formData }) => {
       {smsfs.map((smsf, idx) => (
         <div key={idx} className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
           <div className="flex justify-between items-center mb-3">
-            <h4 className="font-medium text-gray-700">SMSF {idx + 1}</h4>
-            <button
-              type="button"
-              onClick={() => handlers.removeSMSF(idx)}
-              className="text-red-600 hover:text-red-700"
-            >
-              <Trash2 size={18} />
-            </button>
+            <h4 className="font-medium text-gray-700">
+              SMSF {idx + 1}
+              {smsf.id && <span className="ml-2 text-xs text-green-600">(Saved)</span>}
+            </h4>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => handleSaveSMSF(idx)}
+                disabled={savingIndex === idx}
+                className="flex items-center px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm disabled:opacity-50"
+              >
+                {savingIndex === idx ? (
+                  <>
+                    <Loader2 size={14} className="mr-1 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save size={14} className="mr-1" />
+                    Save
+                  </>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDeleteSMSF(idx)}
+                disabled={deletingIndex === idx}
+                className="flex items-center px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm disabled:opacity-50"
+              >
+                {deletingIndex === idx ? (
+                  <>
+                    <Loader2 size={14} className="mr-1 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={14} className="mr-1" />
+                    Delete
+                  </>
+                )}
+              </button>
+            </div>
           </div>
           
           <div className="space-y-3">

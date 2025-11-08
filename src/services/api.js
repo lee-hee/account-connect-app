@@ -985,14 +985,12 @@ const SAMPLE_ACCOUNTANT_FAT_DTO = {
       street: "123 Collins Street",
       city: "Melbourne",
       state: "VIC",
-      postcode: "3000",
-      country: "Australia"
+      postcode: "3000"
     }
   },
 
   // System metadata (auto-generated)
   metadata: {
-    accountType: "ACCOUNTANT",
     accountStatus: "PENDING_VERIFICATION",
     registrationSource: "WEB_SIGNUP",
     submittedAt: "2025-11-08T10:30:00Z"
@@ -1000,17 +998,18 @@ const SAMPLE_ACCOUNTANT_FAT_DTO = {
 };
 
 /**
- * Register a new accountant
- * Sends all registration data as a single fat DTO at the final step
+ * Register a new accountant with improved error handling
+ * Sends all registration data as a single accountantRegisterDTO at the final step
+ * Properly extracts and returns error messages from server responses
  *
  * @param {Object} accountantData - Complete accountant registration data from all steps
  * @returns {Promise<Object>} API response with success status
  */
 export const registerAccountant = async (accountantData) => {
   try {
-    // Transform the form data into a properly nested fat DTO structure
+    // Transform the form data into a properly nested accountantRegisterDTO structure
     // This DTO contains ALL information from all 3 steps
-    const fatDTO = {
+    const accountantRegisterDTO = {
       // Step 1: Personal Details
       personalDetails: {
         firstName: accountantData.firstName,
@@ -1047,27 +1046,53 @@ export const registerAccountant = async (accountantData) => {
     };
 
     // Log the DTO structure (without sensitive data)
-    console.log('🚀 Sending fat DTO to accountant registration endpoint');
+    console.log('🚀 Sending accountantRegisterDTO to accountant registration endpoint');
     console.log('📦 DTO Structure:', {
-      ...fatDTO,
+      ...accountantRegisterDTO,
       authentication: { password: '***HIDDEN***' } // Don't log actual password
     });
-    console.log('📍 API Endpoint:', `${API_BASE_URL}/accountants/register`);
+    console.log('📍 API Endpoint:', `${API_BASE_URL}/accountant/register`);
 
-    const response = await fetch(`${API_BASE_URL}/accountants/register`, {
+    const response = await fetch(`${API_BASE_URL}/accountant/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       },
-      body: JSON.stringify(fatDTO)
+      body: JSON.stringify(accountantRegisterDTO)
     });
 
     console.log('📥 Response Status:', response.status);
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      console.log('❌ Error Response:', errorData);
+
+      // Extract error message from server response
+      let errorMessage = 'Registration failed. Please try again.';
+
+      // Check for embedded errors format (Micronaut validation errors)
+      if (errorData._embedded && errorData._embedded.errors && errorData._embedded.errors.length > 0) {
+        const firstError = errorData._embedded.errors[0].message;
+        // Extract message after second colon if it exists
+        // Format: "request.personalDetails.phone: Phone must be a valid Australian number (+61 followed by 9 digits)"
+        const parts = firstError.split(':');
+        if (parts.length >= 2) {
+          errorMessage = parts.slice(1).join(':').trim();
+        } else {
+          errorMessage = firstError;
+        }
+      }
+      // Check for direct message
+      else if (errorData.message && errorData.message !== 'Bad Request') {
+        errorMessage = errorData.message;
+      }
+      // Check for error field
+      else if (errorData.error) {
+        errorMessage = errorData.error;
+      }
+
+      throw new Error(errorMessage);
     }
 
     const data = await response.json();
@@ -1085,221 +1110,10 @@ export const registerAccountant = async (accountantData) => {
     return {
       success: false,
       error: error.message,
-      message: 'Failed to submit accountant registration. Please try again.'
+      message: error.message || 'Failed to submit accountant registration. Please try again.'
     };
   }
 };
-
-/**
- * Check if email is already registered
- * Used to validate email uniqueness during registration
- *
- * @param {string} email - Email to check
- * @returns {Promise<Object>} Response indicating if email exists
- */
-export const checkAccountantEmailExists = async (email) => {
-  try {
-    console.log('🔍 Checking if accountant email exists:', email);
-
-    const response = await fetch(`${API_BASE_URL}/accountants/check-email?email=${encodeURIComponent(email)}`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json'
-      }
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    console.log('✅ Email check result:', data);
-
-    return {
-      success: true,
-      exists: data.exists
-    };
-
-  } catch (error) {
-    console.error('❌ Email check error:', error);
-
-    return {
-      success: false,
-      error: error.message
-    };
-  }
-};
-
-/**
- * Get accountant registration status
- * Check the status of an accountant's registration
- *
- * @param {string} email - Accountant's email
- * @returns {Promise<Object>} Registration status
- */
-export const getAccountantRegistrationStatus = async (email) => {
-  try {
-    console.log('🔍 Fetching accountant registration status for:', email);
-
-    const response = await fetch(`${API_BASE_URL}/accountants/status?email=${encodeURIComponent(email)}`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json'
-      }
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    console.log('✅ Registration status:', data);
-
-    return {
-      success: true,
-      data: {
-        status: data.accountStatus, // PENDING_VERIFICATION, ACTIVE, SUSPENDED, REJECTED
-        registeredDate: data.createdAt,
-        verifiedDate: data.verifiedAt || null,
-        accountantId: data.id
-      }
-    };
-
-  } catch (error) {
-    console.error('❌ Status check error:', error);
-
-    return {
-      success: false,
-      error: error.message
-    };
-  }
-};
-
-/**
- * Verify Tax Practitioner Registration Number
- * Optional: Call Tax Practitioners Board API to verify registration
- * This would typically be done on the backend, but can be called from frontend for real-time validation
- *
- * @param {string} registrationNumber - TPB registration number
- * @returns {Promise<Object>} Verification result
- */
-export const verifyTaxPractitionerNumber = async (registrationNumber) => {
-  try {
-    console.log('🔍 Verifying Tax Practitioner Number:', registrationNumber);
-
-    const response = await fetch(`${API_BASE_URL}/accountants/verify-tpb-number`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      body: JSON.stringify({ registrationNumber })
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `Verification failed with status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    console.log('✅ TPB verification result:', data);
-
-    return {
-      success: true,
-      data: {
-        isValid: data.isValid,
-        practitionerName: data.name,
-        registrationStatus: data.status,
-        registrationExpiry: data.expiryDate
-      }
-    };
-
-  } catch (error) {
-    console.error('❌ TPB verification error:', error);
-
-    return {
-      success: false,
-      error: error.message,
-      message: 'Could not verify Tax Practitioner registration number'
-    };
-  }
-};
-
-/**
- * Resend verification email
- * Allows accountant to request a new verification email
- *
- * @param {string} email - Accountant's email
- * @returns {Promise<Object>} Response
- */
-export const resendAccountantVerificationEmail = async (email) => {
-  try {
-    console.log('📧 Resending verification email to:', email);
-
-    const response = await fetch(`${API_BASE_URL}/accountants/resend-verification`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      body: JSON.stringify({ email })
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    console.log('✅ Verification email sent:', data);
-
-    return {
-      success: true,
-      message: 'Verification email has been sent. Please check your inbox.'
-    };
-
-  } catch (error) {
-    console.error('❌ Resend verification error:', error);
-
-    return {
-      success: false,
-      error: error.message
-    };
-  }
-};
-
-/**
- * USAGE EXAMPLE IN REACT COMPONENT:
- *
- * const handleAccountantRegistration = async (formData) => {
- *   // Submit registration with password
- *   const result = await registerAccountant(formData);
- *
- *   if (result.success) {
- *     alert('Registration submitted! You will receive an email once verified.');
- *     // Redirect to login or confirmation page
- *     window.location.href = '/accountant/registration-success';
- *   } else {
- *     alert(`Registration failed: ${result.message}`);
- *   }
- * };
- *
- * // Example form data structure:
- * const exampleFormData = {
- *   firstName: "John",
- *   lastName: "Smith",
- *   email: "john.smith@example.com",
- *   phone: "+61412345678",
- *   password: "SecurePass123!",
- *   businessName: "Smith & Associates",
- *   registrationNumber: "12345678",
- *   businessAddress: "123 Collins Street",
- *   city: "Melbourne",
- *   state: "VIC",
- *   postcode: "3000"
- * };
- */
-
 
 
 // Export all functions as default
@@ -1314,9 +1128,5 @@ export default {
   generateDummyClientData,
   saveBusinessEntity,
   deleteBusinessEntity,
-  registerAccountant,
-  checkAccountantEmailExists,
-  getAccountantRegistrationStatus,
-  verifyTaxPractitionerNumber,
-  resendAccountantVerificationEmail,
+  registerAccountant
 };

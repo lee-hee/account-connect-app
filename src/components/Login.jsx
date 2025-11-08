@@ -120,8 +120,8 @@ const Login = ({ onLoginSuccess }) => {
 
                     <div className="mt-4 text-center">
                         <p className="text-sm text-gray-600">
-                            Don't have an account?{' '}
-                            <a href="#" className="text-indigo-600 hover:text-indigo-700 font-medium">
+                            Don't have a tax agent account?{' '}
+                            <a href="/accountant/signup" className="text-indigo-600 hover:text-indigo-700 font-medium">
                                 Sign up
                             </a>
                         </p>

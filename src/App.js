@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './components/Login';
 import ClientRegistrationForm from './components/ClientRegistrationForm';
 import Dashboard from './components/Dashboard';
+import AccountantSignup from './components/AccountantSignup';
 
 function App() {
     const [user, setUser] = useState(null);
@@ -55,29 +57,34 @@ function App() {
         );
     }
 
-    // If user is not logged in, show login page
-    if (!user) {
-        return <Login onLoginSuccess={handleLoginSuccess} />;
-    }
-
-    // If user is logged in but registration is not completed, show registration form
-    if (!user.registrationCompleted) {
-        return (
-            <div className="App">
-                <ClientRegistrationForm
-                    user={user}
-                    onRegistrationComplete={handleRegistrationComplete}
-                    onLogout={handleLogout}
-                />
-            </div>
-        );
-    }
-
-    // If user is logged in and registration is completed, show dashboard
     return (
-        <div className="App">
-            <Dashboard user={user} onLogout={handleLogout} />
-        </div>
+        <Router>
+            <Routes>
+                {/* Public route - Accountant Signup */}
+                <Route path="/accountant/signup" element={<AccountantSignup />} />
+                
+                {/* Protected routes based on authentication and registration status */}
+                <Route 
+                    path="/*" 
+                    element={
+                        !user ? (
+                            // Not logged in - show login
+                            <Login onLoginSuccess={handleLoginSuccess} />
+                        ) : !user.registrationCompleted ? (
+                            // Logged in but registration incomplete - show registration form
+                            <ClientRegistrationForm
+                                user={user}
+                                onRegistrationComplete={handleRegistrationComplete}
+                                onLogout={handleLogout}
+                            />
+                        ) : (
+                            // Logged in and registration complete - show dashboard
+                            <Dashboard user={user} onLogout={handleLogout} />
+                        )
+                    } 
+                />
+            </Routes>
+        </Router>
     );
 }
 

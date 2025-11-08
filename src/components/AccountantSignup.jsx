@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { AlertCircle, CheckCircle, ChevronRight, ChevronLeft, Loader2 } from 'lucide-react';
 import { 
   registerAccountant, 
-  checkAccountantEmailExists,
-  verifyTaxPractitionerNumber 
+  checkAccountantEmailExists
 } from '../services/api';
 
 /**
@@ -43,7 +42,6 @@ export default function AccountantSignup() {
 
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
-  const [verificationStatus, setVerificationStatus] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -148,44 +146,6 @@ export default function AccountantSignup() {
   const handleBack = () => {
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
-    }
-  };
-
-  const handleVerifyTPBNumber = async () => {
-    if (!formData.registrationNumber.trim()) {
-      setErrors(prev => ({
-        ...prev,
-        registrationNumber: 'Please enter a registration number first'
-      }));
-      return;
-    }
-
-    setIsLoading(true);
-    setVerificationStatus('verifying');
-
-    try {
-      const result = await verifyTaxPractitionerNumber(formData.registrationNumber);
-      
-      if (result.success && result.data.isValid) {
-        setVerificationStatus('verified');
-        // Auto-fill business name if available
-        if (result.data.practitionerName && !formData.businessName) {
-          setFormData(prev => ({
-            ...prev,
-            businessName: result.data.practitionerName
-          }));
-        }
-      } else {
-        setVerificationStatus('invalid');
-        setErrors(prev => ({
-          ...prev,
-          registrationNumber: 'Could not verify this registration number'
-        }));
-      }
-    } catch (error) {
-      setVerificationStatus('error');
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -489,45 +449,17 @@ export default function AccountantSignup() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Tax Practitioner Registration Number <span className="text-red-500">*</span>
                 </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    name="registrationNumber"
-                    value={formData.registrationNumber}
-                    onChange={handleInputChange}
-                    className={`flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                      errors.registrationNumber ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                    placeholder="e.g., 12345678"
-                    maxLength="8"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleVerifyTPBNumber}
-                    disabled={isLoading || !formData.registrationNumber}
-                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Verifying...
-                      </>
-                    ) : (
-                      'Verify'
-                    )}
-                  </button>
-                </div>
-                {verificationStatus === 'verified' && (
-                  <p className="mt-1 text-sm text-green-600 flex items-center">
-                    <CheckCircle className="w-4 h-4 mr-1" />
-                    Registration number verified
-                  </p>
-                )}
-                {verificationStatus === 'invalid' && (
-                  <p className="mt-1 text-sm text-red-600">
-                    Could not verify registration number
-                  </p>
-                )}
+                <input
+                  type="text"
+                  name="registrationNumber"
+                  value={formData.registrationNumber}
+                  onChange={handleInputChange}
+                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                    errors.registrationNumber ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                  placeholder="e.g., 12345678"
+                  maxLength="8"
+                />
                 {errors.registrationNumber && (
                   <p className="mt-1 text-sm text-red-600">{errors.registrationNumber}</p>
                 )}

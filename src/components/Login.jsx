@@ -40,17 +40,6 @@ const Login = ({ onLoginSuccess }) => {
                         <p className="text-gray-600">Sign in to your Account Connect account</p>
                     </div>
 
-                    {/* Test Credentials Helper */}
-                    <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                        <p className="text-sm font-semibold text-blue-800 mb-2">Test Credentials:</p>
-                        <div className="text-xs text-blue-700 space-y-1">
-                            <p>• <strong>New user:</strong> incomplete@test.com</p>
-                            <p>• <strong>In progress:</strong> inprogress@test.com</p>
-                            <p>• <strong>Completed:</strong> complete@test.com</p>
-                            <p className="mt-2 italic">Password: Any 6+ characters</p>
-                        </div>
-                    </div>
-
                     <form onSubmit={handleSubmit} className="space-y-6">
                         {error && (
                             <div className="bg-red-50 border border-red-200 rounded-lg p-3">

@@ -1,91 +1,59 @@
-import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useState } from 'react';
 import Login from './components/Login';
-import ClientRegistrationForm from './components/ClientRegistrationForm';
-import Dashboard from './components/Dashboard';
-import AccountantSignup from './components/AccountantSignup';
+import AccountantDashboard from './components/AccountantDashboard';
+import ClientRegistrationForm from './components/ClientRegistrationForm'; // Your existing client registration component
 
 function App() {
-    const [user, setUser] = useState(null);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [userData, setUserData] = useState(null);
 
-    // Check if user is already logged in (from localStorage or session)
-    useEffect(() => {
-        const checkAuth = () => {
-            const storedUser = localStorage.getItem('user');
-            if (storedUser) {
-                try {
-                    setUser(JSON.parse(storedUser));
-                } catch (error) {
-                    console.error('Error parsing stored user:', error);
-                    localStorage.removeItem('user');
-                }
-            }
-            setIsLoading(false);
-        };
-
-        checkAuth();
-    }, []);
-
-    const handleLoginSuccess = (userData) => {
-        setUser(userData);
-        // Store user data in localStorage for persistence
-        localStorage.setItem('user', JSON.stringify(userData));
+    // Handle successful login
+    const handleLoginSuccess = (data) => {
+        console.log('Login successful, user data:', data);
+        setUserData(data);
+        setIsAuthenticated(true);
     };
 
+    // Handle logout
     const handleLogout = () => {
-        setUser(null);
-        localStorage.removeItem('user');
+        setIsAuthenticated(false);
+        setUserData(null);
     };
 
-    const handleRegistrationComplete = () => {
-        // Update user's registration status
-        const updatedUser = { ...user, registrationCompleted: true };
-        setUser(updatedUser);
-        localStorage.setItem('user', JSON.stringify(updatedUser));
-    };
-
-    // Show loading state while checking authentication
-    if (isLoading) {
-        return (
-            <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-                    <p className="mt-4 text-gray-600">Loading...</p>
-                </div>
-            </div>
-        );
+    // Not logged in - show login page
+    if (!isAuthenticated) {
+        return <Login onLoginSuccess={handleLoginSuccess} />;
     }
 
-    return (
-        <Router>
-            <Routes>
-                {/* Public route - Accountant Signup */}
-                <Route path="/accountant/signup" element={<AccountantSignup />} />
-                
-                {/* Protected routes based on authentication and registration status */}
-                <Route 
-                    path="/*" 
-                    element={
-                        !user ? (
-                            // Not logged in - show login
-                            <Login onLoginSuccess={handleLoginSuccess} />
-                        ) : !user.registrationCompleted ? (
-                            // Logged in but registration incomplete - show registration form
-                            <ClientRegistrationForm
-                                user={user}
-                                onRegistrationComplete={handleRegistrationComplete}
-                                onLogout={handleLogout}
-                            />
-                        ) : (
-                            // Logged in and registration complete - show dashboard
-                            <Dashboard user={user} onLogout={handleLogout} />
-                        )
-                    } 
-                />
-            </Routes>
-        </Router>
-    );
+    // Logged in - route based on user role
+    const userRole = userData?.userRole;
+
+    switch (userRole) {
+        case 'ACCOUNTANT':
+            return <AccountantDashboard userData={userData} onLogout={handleLogout} />;
+
+        case 'CLIENT':
+            return <ClientRegistrationForm userData={userData} onLogout={handleLogout} />;
+
+        default:
+            // Fallback for unknown roles
+            return (
+                <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                    <div className="bg-white p-8 rounded-lg shadow-lg max-w-md text-center">
+                        <h2 className="text-2xl font-bold text-gray-900 mb-4">Invalid User Role</h2>
+                        <p className="text-gray-600 mb-6">
+                            Your account role ({userRole || 'unknown'}) is not recognized. Please contact support.
+                        </p>
+                        <button
+                            onClick={handleLogout}
+                            className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                        >
+                            Return to Login
+                        </button>
+                    </div>
+                </div>
+            );
+    }
 }
 
 export default App;

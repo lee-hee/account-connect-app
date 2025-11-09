@@ -868,7 +868,7 @@ export const deleteBusinessEntity = async (entityType, entityId) => {
 };
 
 /**
- * Login user (with multiple dummy users for testing)
+ * Login user via backend authentication endpoint
  * Authenticates user and returns user data with registration status
  *
  * @param {string} email - User email
@@ -878,69 +878,62 @@ export const deleteBusinessEntity = async (entityType, entityId) => {
 export const loginUser = async (email, password) => {
   try {
     console.log('🔐 Logging in user:', email);
+    console.log('📍 API Endpoint:', `${API_BASE_URL}/auth/login`);
 
-    // ========== DUMMY RESPONSE FOR TESTING ==========
-
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    // Define dummy users for different test scenarios
-    const dummyUsers = {
-      // User with incomplete registration
-      'incomplete@test.com': {
-        success: true,
-        clientId: null, // No clientId yet - will be generated during registration
-        email: 'incomplete@test.com',
-        firstName: null,
-        lastName: null,
-        registrationCompleted: false,
-        token: 'dummy-jwt-token-incomplete-user'
-      },
-
-      // User with registration in progress (has clientId but not completed)
-      'inprogress@test.com': {
-        success: true,
-        clientId: 12345,
-        email: 'inprogress@test.com',
-        firstName: 'Jane',
-        lastName: 'Doe',
-        registrationCompleted: false,
-        token: 'dummy-jwt-token-inprogress-user'
-      },
-
-      // User with completed registration
-      'complete@test.com': {
-        success: true,
-        clientId: 67890,
-        email: 'complete@test.com',
-        firstName: 'John',
-        lastName: 'Smith',
-        registrationCompleted: true,
-        token: 'dummy-jwt-token-complete-user'
-      }
+    // Prepare login request matching backend LoginRequest DTO
+    const loginRequest = {
+      email: email,
+      password: password
     };
 
-    // Check if user exists in dummy data
-    const userData = dummyUsers[email.toLowerCase()];
+    const response = await fetch(`${API_BASE_URL}/auth/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(loginRequest)
+    });
 
-    if (!userData) {
-      // Simulate invalid credentials
-      throw new Error('Invalid email or password');
+    console.log('📥 Response Status:', response.status);
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.log('❌ Error Response:', errorData);
+
+      // Extract error message from server response
+      let errorMessage = 'Invalid email or password';
+
+      // Check for embedded errors format (Micronaut validation errors)
+      if (errorData._embedded && errorData._embedded.errors && errorData._embedded.errors.length > 0) {
+        const firstError = errorData._embedded.errors[0].message;
+        // Extract message after the field name
+        const parts = firstError.split(':');
+        if (parts.length >= 2) {
+          errorMessage = parts.slice(1).join(':').trim();
+        } else {
+          errorMessage = firstError;
+        }
+      }
+      // Check for direct message
+      else if (errorData.message) {
+        errorMessage = errorData.message;
+      }
+      // Check for error field
+      else if (errorData.error) {
+        errorMessage = errorData.error;
+      }
+
+      throw new Error(errorMessage);
     }
 
-    // Simple password check (in real app, this would be secure)
-    if (password.length < 6) {
-      throw new Error('Invalid email or password');
-    }
-
-    console.log('✅ Login successful (DUMMY DATA):', userData);
+    const data = await response.json();
+    console.log('✅ Login successful:', data);
 
     return {
       success: true,
-      data: userData
+      data: data
     };
-
-    // ========== END DUMMY RESPONSE ==========
 
   } catch (error) {
     console.error('❌ Login error:', error);

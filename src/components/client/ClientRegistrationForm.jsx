@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronRight, ChevronLeft, User, Home, Briefcase, CheckCircle, DollarSign, FileCheck, Loader2, LogOut } from 'lucide-react';
-import { useFormData } from '../hooks/useFormData';
-import { validateStep } from '../utils/validation';
+import { useFormData } from '../../hooks/useFormData';
+import { validateStep } from '../../utils/validation';
 import ProgressSteps from './ProgressSteps';
 import PersonalInfoStep from './steps/PersonalInfoStep';
 import FinancialDetailsStep from './steps/FinancialDetailsStep';
@@ -10,7 +10,7 @@ import FamilyStep from './steps/FamilyStep';
 import BusinessEntitiesStep from './steps/BusinessEntitiesStep';
 import PreviewStep from './steps/PreviewStep';
 import AgreementsStep from './steps/AgreementsStep';
-import { registerClient, saveStepData, getClientById } from '../services/api';
+import { registerClient, saveStepData, getClientById } from '../../services/api';
 
 const ClientRegistrationForm = ({ user, onRegistrationComplete, onLogout }) => {
   const [currentStep, setCurrentStep] = useState(1);

@@ -1,14 +1,14 @@
 import React from 'react';
-import { useSoleTrader } from '../../hooks/useSoleTrader';
-import { useCompanies } from '../../hooks/useCompanies';
-import { useTrusts } from '../../hooks/useTrusts';
-import { useSMSFs } from '../../hooks/useSMSFs';
-import { usePartnerships } from '../../hooks/usePartnerships';
-import SoleTraderEntity from '../entities/SoleTraderEntity';
-import CompanyEntity from '../entities/CompanyEntity';
-import TrustEntity from '../entities/TrustEntity';
-import SMSFEntity from '../entities/SMSFEntity';
-import PartnershipEntity from '../entities/PartnershipEntity';
+import { useSoleTrader } from '../../../hooks/useSoleTrader';
+import { useCompanies } from '../../../hooks/useCompanies';
+import { useTrusts } from '../../../hooks/useTrusts';
+import { useSMSFs } from '../../../hooks/useSMSFs';
+import { usePartnerships } from '../../../hooks/usePartnerships';
+import SoleTraderEntity from '../../entities/SoleTraderEntity';
+import CompanyEntity from '../../entities/CompanyEntity';
+import TrustEntity from '../../entities/TrustEntity';
+import SMSFEntity from '../../entities/SMSFEntity';
+import PartnershipEntity from '../../entities/PartnershipEntity';
 
 
 const BusinessEntitiesStep = ({ formData, setFormData }) => {

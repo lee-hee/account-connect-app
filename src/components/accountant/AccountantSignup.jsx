@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { AlertCircle, CheckCircle, ChevronRight, ChevronLeft, Loader2, Shield, Mail, FileCheck } from 'lucide-react';
 import {
   registerAccountant
-} from '../services/api';
-import PasswordSetup from './PasswordSetup';
+} from '../../services/api';
+import PasswordSetup from '../PasswordSetup';
 
 /**
  * Accountant Registration Component
@@ -601,7 +601,7 @@ export default function AccountantSignup() {
 
                   <div className="pt-6">
                     <a
-                        href="/"
+                        href="/public"
                         className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
                     >
                       Return to Home

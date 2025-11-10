@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './components/Login';
-import AccountantDashboard from './components/AccountantDashboard';
-import ClientRegistrationForm from './components/ClientRegistrationForm';
-import AccountantSignup from './components/AccountantSignup'; // Your existing accountant signup component
+import AccountantDashboard from './components/accountant/AccountantDashboard';
+import ClientRegistrationForm from './components/client/ClientRegistrationForm';
+import AccountantSignup from './components/accountant/AccountantSignup'; // Your existing accountant signup component
 
 function App() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);

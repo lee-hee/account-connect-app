@@ -1109,9 +1109,107 @@ export const registerAccountant = async (accountantData) => {
 };
 
 
+/**
+ * CLIENT PROVISIONING API FUNCTION
+ * Add this function to your src/services/api.js file
+ *
+ * This function allows accountants to provision new clients with minimal information.
+ * A secure random password is automatically generated on the backend.
+ */
+
+/**
+ * Provision a new client (used by accountants to invite clients)
+ * Creates a client account with minimal information and generates a secure password
+ *
+ * @param {Object} clientData - Client provisioning data
+ * @param {string} clientData.firstName - Client's first name
+ * @param {string} clientData.lastName - Client's last name
+ * @param {string} clientData.email - Client's email address
+ * @returns {Promise<Object>} API response with provisioned client data
+ */
+export const provisionClient = async (clientData) => {
+  try {
+    console.log('👤 Provisioning new client:', clientData.email);
+    console.log('📍 API Endpoint:', `${API_BASE_URL}/clients/provision`);
+
+    // Validate required fields
+    if (!clientData.firstName || !clientData.lastName || !clientData.email) {
+      throw new Error('First name, last name, and email are required');
+    }
+
+    const payload = {
+      firstName: clientData.firstName.trim(),
+      lastName: clientData.lastName.trim(),
+      email: clientData.email.trim()
+    };
+
+    console.log('📦 Payload:', payload);
+
+    const response = await fetch(`${API_BASE_URL}/clients/provision`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    console.log('📥 Response Status:', response.status);
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.log('❌ Error Response:', errorData);
+
+      // Extract error message from server response
+      let errorMessage = 'Failed to provision client';
+
+      // Check for embedded errors format (Micronaut validation errors)
+      if (errorData._embedded && errorData._embedded.errors && errorData._embedded.errors.length > 0) {
+        const firstError = errorData._embedded.errors[0].message;
+        const parts = firstError.split(':');
+        if (parts.length >= 2) {
+          errorMessage = parts.slice(1).join(':').trim();
+        } else {
+          errorMessage = firstError;
+        }
+      }
+      // Check for direct message
+      else if (errorData.message && errorData.message !== 'Bad Request') {
+        errorMessage = errorData.message;
+      }
+      // Check for error field
+      else if (errorData.error) {
+        errorMessage = errorData.error;
+      }
+
+      throw new Error(errorMessage);
+    }
+
+    const data = await response.json();
+    console.log('✅ Client provisioned successfully:', data);
+
+    return {
+      success: true,
+      data: data,
+      message: 'Client provisioned successfully. A secure password has been generated and sent to their email.'
+    };
+
+  } catch (error) {
+    console.error('❌ Client provisioning error:', error);
+
+    return {
+      success: false,
+      error: error.message,
+      message: error.message || 'Failed to provision client. Please try again.'
+    };
+  }
+};
+
+
 // Export all functions as default
 export default {
   loginUser,
+  provisionClient,
   saveStepData,
   registerClient,
   getClientById,

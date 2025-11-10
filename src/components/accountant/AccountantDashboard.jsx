@@ -1,7 +1,22 @@
-import React from 'react';
-import { Users, FileText, Calendar, Settings, LogOut, Plus, Search } from 'lucide-react';
+import React, { useState } from 'react';
+import { Users, FileText, Calendar, Settings, LogOut, UserPlus, Search } from 'lucide-react';
+import InviteClientModal from './InviteClientModal';
 
 const AccountantDashboard = ({ userData, onLogout }) => {
+    const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+    const [clients, setClients] = useState([]);
+
+    const handleInviteSuccess = (newClient) => {
+        // Add the new client to the list
+        setClients(prev => [...prev, newClient]);
+        
+        // Close the modal
+        setIsInviteModalOpen(false);
+        
+        // Show success notification (you can use a toast library here)
+        console.log('Client invited successfully:', newClient);
+    };
+
     return (
         <div className="min-h-screen bg-gray-50">
             {/* Header */}
@@ -15,9 +30,9 @@ const AccountantDashboard = ({ userData, onLogout }) => {
                         <div className="flex items-center space-x-4">
                             <div className="text-right">
                                 <p className="text-sm font-medium text-gray-900">
-                                    {userData.firstName} {userData.lastName}
+                                    {userData.email}
                                 </p>
-                                <p className="text-xs text-gray-500">{userData.email}</p>
+                                <p className="text-xs text-gray-500">Tax Agent</p>
                             </div>
                             <button
                                 onClick={onLogout}
@@ -36,7 +51,7 @@ const AccountantDashboard = ({ userData, onLogout }) => {
                 {/* Welcome Section */}
                 <div className="mb-8">
                     <h2 className="text-3xl font-bold text-gray-900 mb-2">
-                        Welcome back, {userData.firstName}!
+                        Welcome back!
                     </h2>
                     <p className="text-gray-600">
                         Manage your clients and their tax information from your dashboard.
@@ -46,10 +61,11 @@ const AccountantDashboard = ({ userData, onLogout }) => {
                 {/* Quick Actions */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                     <QuickActionCard
-                        icon={<Plus size={24} />}
-                        title="New Client"
-                        description="Add a new client"
+                        icon={<UserPlus size={24} />}
+                        title="Invite Client"
+                        description="Provision a new client"
                         color="blue"
+                        onClick={() => setIsInviteModalOpen(true)}
                     />
                     <QuickActionCard
                         icon={<Search size={24} />}
@@ -83,11 +99,38 @@ const AccountantDashboard = ({ userData, onLogout }) => {
                                 </button>
                             </div>
                             <div className="space-y-3">
-                                <EmptyState
-                                    icon={<Users size={48} />}
-                                    message="No clients yet"
-                                    description="Start by adding your first client"
-                                />
+                                {clients.length === 0 ? (
+                                    <EmptyState
+                                        icon={<Users size={48} />}
+                                        message="No clients yet"
+                                        description="Start by inviting your first client"
+                                        actionButton={
+                                            <button
+                                                onClick={() => setIsInviteModalOpen(true)}
+                                                className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center"
+                                            >
+                                                <UserPlus size={16} className="mr-2" />
+                                                Invite Client
+                                            </button>
+                                        }
+                                    />
+                                ) : (
+                                    <div className="space-y-3">
+                                        {clients.map((client, index) => (
+                                            <div key={index} className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                                                <div className="flex items-center justify-between">
+                                                    <div>
+                                                        <p className="font-medium text-gray-900">
+                                                            {client.firstName} {client.lastName}
+                                                        </p>
+                                                        <p className="text-sm text-gray-500">{client.email}</p>
+                                                    </div>
+                                                    <span className="text-xs text-gray-500">Just now</span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -96,7 +139,7 @@ const AccountantDashboard = ({ userData, onLogout }) => {
                     <div className="space-y-6">
                         <StatCard
                             title="Total Clients"
-                            value="0"
+                            value={clients.length.toString()}
                             icon={<Users size={20} />}
                             color="blue"
                         />
@@ -125,12 +168,19 @@ const AccountantDashboard = ({ userData, onLogout }) => {
                     />
                 </div>
             </main>
+
+            {/* Invite Client Modal */}
+            <InviteClientModal
+                isOpen={isInviteModalOpen}
+                onClose={() => setIsInviteModalOpen(false)}
+                onSuccess={handleInviteSuccess}
+            />
         </div>
     );
 };
 
 // Quick Action Card Component
-const QuickActionCard = ({ icon, title, description, color }) => {
+const QuickActionCard = ({ icon, title, description, color, onClick }) => {
     const colorClasses = {
         blue: 'bg-blue-50 text-blue-600 hover:bg-blue-100',
         green: 'bg-green-50 text-green-600 hover:bg-green-100',
@@ -139,7 +189,10 @@ const QuickActionCard = ({ icon, title, description, color }) => {
     };
 
     return (
-        <button className={`${colorClasses[color]} p-6 rounded-lg transition-colors text-left w-full`}>
+        <button 
+            onClick={onClick}
+            className={`${colorClasses[color]} p-6 rounded-lg transition-colors text-left w-full`}
+        >
             <div className="mb-3">{icon}</div>
             <h4 className="font-semibold text-gray-900 mb-1">{title}</h4>
             <p className="text-sm text-gray-600">{description}</p>
@@ -169,7 +222,7 @@ const StatCard = ({ title, value, icon, color }) => {
 };
 
 // Empty State Component
-const EmptyState = ({ icon, message, description }) => {
+const EmptyState = ({ icon, message, description, actionButton }) => {
     return (
         <div className="text-center py-12">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4 text-gray-400">
@@ -177,6 +230,7 @@ const EmptyState = ({ icon, message, description }) => {
             </div>
             <h4 className="text-lg font-medium text-gray-900 mb-1">{message}</h4>
             <p className="text-sm text-gray-500">{description}</p>
+            {actionButton && actionButton}
         </div>
     );
 };

@@ -867,20 +867,11 @@ export const deleteBusinessEntity = async (entityType, entityId) => {
   }
 };
 
-/**
- * Login user via backend authentication endpoint
- * Authenticates user and returns user data with registration status
- *
- * @param {string} email - User email
- * @param {string} password - User password
- * @returns {Promise<Object>} API response with user data
- */
 export const loginUser = async (email, password) => {
   try {
     console.log('🔐 Logging in user:', email);
     console.log('📍 API Endpoint:', `${API_BASE_URL}/auth/login`);
 
-    // Prepare login request matching backend LoginRequest DTO
     const loginRequest = {
       email: email,
       password: password
@@ -904,10 +895,8 @@ export const loginUser = async (email, password) => {
       // Extract error message from server response
       let errorMessage = 'Invalid email or password';
 
-      // Check for embedded errors format (Micronaut validation errors)
       if (errorData._embedded && errorData._embedded.errors && errorData._embedded.errors.length > 0) {
         const firstError = errorData._embedded.errors[0].message;
-        // Extract message after the field name
         const parts = firstError.split(':');
         if (parts.length >= 2) {
           errorMessage = parts.slice(1).join(':').trim();
@@ -915,11 +904,9 @@ export const loginUser = async (email, password) => {
           errorMessage = firstError;
         }
       }
-      // Check for direct message
       else if (errorData.message) {
         errorMessage = errorData.message;
       }
-      // Check for error field
       else if (errorData.error) {
         errorMessage = errorData.error;
       }
@@ -927,12 +914,14 @@ export const loginUser = async (email, password) => {
       throw new Error(errorMessage);
     }
 
-    const data = await response.json();
-    console.log('✅ Login successful:', data);
+    const accountConnectUser = await response.json();
+    console.log('✅ Login successful - Account Connect User:', accountConnectUser);
+    console.log('📋 User Role:', accountConnectUser.userRole);
+    console.log('📋 External ID:', accountConnectUser.externalId);
 
     return {
       success: true,
-      data: data
+      data: accountConnectUser
     };
 
   } catch (error) {
@@ -944,7 +933,6 @@ export const loginUser = async (email, password) => {
     };
   }
 };
-
 
 /**
  * ACCOUNTANT REGISTRATION API

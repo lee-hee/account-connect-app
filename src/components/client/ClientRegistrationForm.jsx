@@ -12,7 +12,8 @@ import PreviewStep from './steps/PreviewStep';
 import AgreementsStep from './steps/AgreementsStep';
 import { registerClient, saveStepData, getClientById } from '../../services/api';
 
-const ClientRegistrationForm = ({ user, onRegistrationComplete, onLogout }) => {
+// FIX: Changed parameter name from 'user' to 'userData' to match App.js usage
+const ClientRegistrationForm = ({ userData, onRegistrationComplete, onLogout }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [errors, setErrors] = useState({});
   const [isSaving, setIsSaving] = useState(false);
@@ -22,13 +23,14 @@ const ClientRegistrationForm = ({ user, onRegistrationComplete, onLogout }) => {
   // Load existing client data if clientId exists
   useEffect(() => {
     const loadClientData = async () => {
-      if (user.clientId) {
-        const result = await getClientById(user.clientId);
+      // FIX: Changed 'user' to 'userData' to match the prop name
+      if (userData?.clientId) {
+        const result = await getClientById(userData.clientId);
         if (result.success && result.data) {
           // Populate form with existing data
           setFormData(prev => ({
             ...prev,
-            clientId: user.clientId,
+            clientId: userData.clientId,
             ...result.data
           }));
         }
@@ -36,13 +38,14 @@ const ClientRegistrationForm = ({ user, onRegistrationComplete, onLogout }) => {
         // Set clientId if user doesn't have one yet
         setFormData(prev => ({
           ...prev,
-          email: user.email // Pre-fill email from login
+          email: userData?.email // Pre-fill email from login
         }));
       }
     };
 
     loadClientData();
-  }, [user.clientId, user.email, setFormData]);
+    // FIX: Updated dependencies to use userData instead of user
+  }, [userData?.clientId, userData?.email, setFormData]);
 
   const steps = [
     { number: 1, title: 'Personal Info', icon: User },
@@ -150,7 +153,8 @@ const ClientRegistrationForm = ({ user, onRegistrationComplete, onLogout }) => {
           {/* Header with Logout */}
           <div className="flex justify-between items-center mb-4">
             <div className="text-sm text-gray-600">
-              Logged in as: <span className="font-medium">{user.email}</span>
+              {/* FIX: Changed userData.email from user.email */}
+              Logged in as: <span className="font-medium">{userData?.email}</span>
             </div>
             <button
                 onClick={onLogout}

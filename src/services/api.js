@@ -1193,9 +1193,203 @@ export const provisionClient = async (clientData) => {
   }
 };
 
+/**
+ * STRIPE IDENTITY VERIFICATION API FUNCTIONS
+ */
+
+/**
+ * Create a Stripe Identity verification session
+ * This initializes the ID verification process for a user
+ *
+ * @param {number} userId - The user's ID
+ * @param {string} email - The user's email address
+ * @param {string} userRole - The user's role (CLIENT or ACCOUNTANT)
+ * @returns {Promise<Object>} API response with client secret and session ID
+ */
+export const createVerificationSession = async (userId, email, userRole) => {
+  try {
+    console.log('🔐 Creating ID verification session for:', email);
+    console.log('📍 API Endpoint:', `${API_BASE_URL}/auth/id-verification/create-session`);
+
+    const payload = {
+      userId: userId,
+      email: email,
+      returnUrl: `${window.location.origin}/verification/complete`
+    };
+
+    console.log('📦 Payload:', payload);
+
+    const response = await fetch(`${API_BASE_URL}/auth/id-verification/create-session`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    console.log('📥 Response Status:', response.status);
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.log('❌ Error Response:', errorData);
+
+      // Extract error message
+      let errorMessage = 'Failed to create verification session';
+
+      if (errorData.message) {
+        errorMessage = errorData.message;
+      } else if (errorData.error) {
+        errorMessage = errorData.error;
+      }
+
+      throw new Error(errorMessage);
+    }
+
+    const data = await response.json();
+    console.log('✅ Verification session created:', data);
+
+    return {
+      success: true,
+      clientSecret: data.clientSecret,
+      verificationSessionId: data.verificationSessionId,
+      message: data.message
+    };
+
+  } catch (error) {
+    console.error('❌ Create verification session error:', error);
+
+    return {
+      success: false,
+      error: error.message,
+      message: error.message || 'Failed to create verification session'
+    };
+  }
+};
+
+/**
+ * Get verification status by user ID
+ * Checks if a user has completed identity verification
+ *
+ * @param {number} userId - The user's ID
+ * @returns {Promise<Object>} API response with verification status
+ */
+export const getVerificationStatusByUserId = async (userId) => {
+  try {
+    console.log('🔍 Fetching verification status for user:', userId);
+    console.log('📍 API Endpoint:', `${API_BASE_URL}/auth/identity/status/${userId}`);
+
+    const response = await fetch(`${API_BASE_URL}/auth/identity/status/${userId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+    });
+
+    console.log('📥 Response Status:', response.status);
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.log('❌ Error Response:', errorData);
+
+      let errorMessage = 'Failed to fetch verification status';
+
+      if (errorData.message) {
+        errorMessage = errorData.message;
+      } else if (errorData.error) {
+        errorMessage = errorData.error;
+      }
+
+      throw new Error(errorMessage);
+    }
+
+    const data = await response.json();
+    console.log('✅ Verification status retrieved:', data);
+
+    return {
+      success: true,
+      data: data
+    };
+
+  } catch (error) {
+    console.error('❌ Get verification status error:', error);
+
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+};
+
+/**
+ * Get verification status by session ID
+ * Retrieves verification details using the Stripe session ID
+ *
+ * @param {number} userId - The user's ID
+ * @param {string} verificationSessionId - The Stripe verification session ID
+ * @returns {Promise<Object>} API response with verification status
+ */
+export const getVerificationStatusBySessionId = async (userId, verificationSessionId) => {
+  try {
+    console.log('🔍 Fetching verification status by session ID');
+    console.log('📍 API Endpoint:', `${API_BASE_URL}/auth/identity/status`);
+
+    const payload = {
+      userId: userId,
+      verificationSessionId: verificationSessionId
+    };
+
+    const response = await fetch(`${API_BASE_URL}/auth/identity/status`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    console.log('📥 Response Status:', response.status);
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.log('❌ Error Response:', errorData);
+
+      let errorMessage = 'Failed to fetch verification status';
+
+      if (errorData.message) {
+        errorMessage = errorData.message;
+      } else if (errorData.error) {
+        errorMessage = errorData.error;
+      }
+
+      throw new Error(errorMessage);
+    }
+
+    const data = await response.json();
+    console.log('✅ Verification status retrieved:', data);
+
+    return {
+      success: true,
+      data: data
+    };
+
+  } catch (error) {
+    console.error('❌ Get verification status by session error:', error);
+
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+};
+
 
 // Export all functions as default
 export default {
+  createVerificationSession,
+  getVerificationStatusByUserId,
+  getVerificationStatusBySessionId,
   loginUser,
   provisionClient,
   saveStepData,

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Shield, AlertCircle, Loader2, LogOut, CheckCircle, Mail } from 'lucide-react';
+import { createVerificationSession } from '../../services/api';
 
 /**
  * ID Verification Step Component with Stripe Identity Integration
@@ -11,7 +12,7 @@ import { Shield, AlertCircle, Loader2, LogOut, CheckCircle, Mail } from 'lucide-
  * - Stripe Identity embedded verification
  * - Support for both user roles (Accountant and Client)
  * - Email confirmation flow
- * - No polling - user submits and receives email notification
+ * - Uses centralized API methods from api.js
  */
 const IDVerificationStep = ({ userData, onVerificationComplete, onLogout }) => {
     const [isLoading, setIsLoading] = useState(false);
@@ -45,43 +46,6 @@ const IDVerificationStep = ({ userData, onVerificationComplete, onLogout }) => {
             }
         };
     }, []);
-
-    /**
-     * Create verification session
-     * In production, this would call your backend to create a Stripe verification session
-     */
-    const createVerificationSession = async () => {
-        setIsLoading(true);
-        setErrorMessage('');
-
-        try {
-            const response = await fetch(`${API_BASE_URL}/id-verification/create-session`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    userId: userData.id,
-                    email: userData.email,
-                    userRole: userData.userRole
-                })
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to create verification session');
-            }
-
-            const data = await response.json();
-            return data.clientSecret;
-
-        } catch (error) {
-            console.error('❌ Error creating verification session:', error);
-            setErrorMessage('Failed to initialize verification. Please try again.');
-            throw error;
-        } finally {
-            setIsLoading(false);
-        }
-    };
 
     /**
      * Initialize Stripe Identity verification
@@ -123,10 +87,25 @@ const IDVerificationStep = ({ userData, onVerificationComplete, onLogout }) => {
 
     /**
      * Start verification process
+     * Now uses centralized API method from api.js
      */
     const handleStartVerification = async () => {
+        setIsLoading(true);
+        setErrorMessage('');
+
         try {
-            const secret = await createVerificationSession();
+            // Call the API method from api.js
+            const response = await createVerificationSession(
+                userData.userId,
+                userData.email,
+                userData.userRole
+            );
+
+            if (!response.success) {
+                throw new Error(response.message || 'Failed to create verification session');
+            }
+
+            const secret = response.clientSecret;
             setClientSecret(secret);
             setVerificationStarted(true);
 
@@ -136,7 +115,10 @@ const IDVerificationStep = ({ userData, onVerificationComplete, onLogout }) => {
             }, 100);
 
         } catch (error) {
-            // Error already handled in createVerificationSession
+            console.error('❌ Error starting verification:', error);
+            setErrorMessage(error.message || 'Failed to initialize verification. Please try again.');
+        } finally {
+            setIsLoading(false);
         }
     };
 

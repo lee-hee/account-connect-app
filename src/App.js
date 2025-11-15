@@ -5,6 +5,7 @@ import AccountantDashboard from './components/accountant/AccountantDashboard';
 import ClientRegistrationForm from './components/client/ClientRegistrationForm';
 import AccountantSignup from './components/accountant/AccountantSignup';
 import Dashboard from './components/client/Dashboard';
+import IDVerificationStep from './components/IDVerification/IDVerificationStep'; // New component
 
 function App() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -35,6 +36,15 @@ function App() {
         setUserData(null);
     };
 
+    // Handle ID verification completion
+    const handleIDVerificationComplete = () => {
+        // Update user data to mark ID verification as complete
+        setUserData(prev => ({
+            ...prev,
+            idVerificationComplete: true
+        }));
+    };
+
     return (
         <Router>
             <Routes>
@@ -55,11 +65,27 @@ function App() {
                     element={<AccountantSignup />}
                 />
 
+                {/* ID Verification Route - Required for both Accountants and Clients */}
+                <Route
+                    path="/id-verification"
+                    element={
+                        isAuthenticated ? (
+                            <IDVerificationStep
+                                userData={userData}
+                                onVerificationComplete={handleIDVerificationComplete}
+                                onLogout={handleLogout}
+                            />
+                        ) : (
+                            <Navigate to="/login" replace />
+                        )
+                    }
+                />
+
                 {/* Protected Routes - Accountant */}
                 <Route
                     path="/accountant/dashboard"
                     element={
-                        isAuthenticated && userData?.userRole === 'ACCOUNTANT' ? (
+                        isAuthenticated && userData?.userRole === 'ACCOUNTANT' && userData?.idVerificationComplete ? (
                             <AccountantDashboard userData={userData} onLogout={handleLogout} />
                         ) : (
                             <Navigate to="/login" replace />
@@ -71,7 +97,7 @@ function App() {
                 <Route
                     path="/client/registration"
                     element={
-                        isAuthenticated && userData?.userRole === 'CLIENT' ? (
+                        isAuthenticated && userData?.userRole === 'CLIENT' && userData?.idVerificationComplete ? (
                             <ClientRegistrationForm userData={userData} onLogout={handleLogout} />
                         ) : (
                             <Navigate to="/login" replace />
@@ -82,7 +108,7 @@ function App() {
                 <Route
                     path="/client/dashboard"
                     element={
-                        isAuthenticated && userData?.userRole === 'CLIENT' ? (
+                        isAuthenticated && userData?.userRole === 'CLIENT' && userData?.idVerificationComplete ? (
                             <Dashboard userData={userData} onLogout={handleLogout} />
                         ) : (
                             <Navigate to="/login" replace />
@@ -113,32 +139,65 @@ function App() {
                                     The page you're looking for doesn't exist.
                                 </p>
 
-                            <a href="/login"
-                                className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors inline-block">
-                                Go to Login
-                            </a>
-                        </div>
+                                <a href="/login"
+                                   className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors inline-block">
+                                    Go to Login
+                                </a>
+                            </div>
                         </div>
                     }
-                    />
+                />
             </Routes>
         </Router>
     );
 }
 
-// Helper function to get default route based on user role and registration status
+/**
+ * Helper function to get default route based on user role and verification status
+ *
+ * @param {string} userRole - The user's role (ACCOUNTANT or CLIENT)
+ * @param {Object} accountConnectUser - The user object containing verification status
+ * @returns {string} The appropriate route path
+ *
+ * Flow:
+ * 1. First check if ID verification is complete
+ *    - If NOT complete: redirect to ID verification step
+ *    - If complete: proceed with role-based routing
+ *
+ * 2. For ACCOUNTANT: redirect to accountant dashboard
+ *
+ * 3. For CLIENT: check registration status
+ *    - If registration is complete: redirect to client dashboard
+ *    - If registration is not complete: redirect to client registration form
+ *
+ * 4. Default: redirect to login
+ */
 function getDefaultRoute(userRole, accountConnectUser) {
+    // Step 1: Check if ID verification is complete
+    // This is a prerequisite for both ACCOUNTANT and CLIENT roles
+    if (!accountConnectUser?.idVerificationComplete) {
+        console.log('⚠️ ID verification not complete. Redirecting to ID verification step.');
+        return '/id-verification';
+    }
+
+    // Step 2: Route based on user role (after ID verification is confirmed)
     switch (userRole) {
         case 'ACCOUNTANT':
+            console.log('✅ Accountant with verified ID. Redirecting to accountant dashboard.');
             return '/accountant/dashboard';
+
         case 'CLIENT':
             // Check if client has completed registration
             if (accountConnectUser?.registrationComplete === true) {
+                console.log('✅ Client with verified ID and complete registration. Redirecting to client dashboard.');
                 return '/client/dashboard';
             } else {
+                console.log('⚠️ Client with verified ID but incomplete registration. Redirecting to registration form.');
                 return '/client/registration';
             }
+
         default:
+            console.log('❌ No valid user role found. Redirecting to login.');
             return '/login';
     }
 }

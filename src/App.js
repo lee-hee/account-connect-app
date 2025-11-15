@@ -23,6 +23,8 @@ function App() {
             clientId: data.userRole === 'CLIENT' ? (data.externalId || data.clientId || null) : null,
             // For accountants: use externalId as accountantId if it exists
             accountantId: data.userRole === 'ACCOUNTANT' ? (data.externalId || data.accountantId || null) : null,
+            // Use backend's idVerified flag
+            idVerificationComplete: data.idVerified || false,
         };
 
         console.log('Account Connect User:', accountConnectUser);
@@ -35,15 +37,6 @@ function App() {
     const handleLogout = () => {
         setIsAuthenticated(false);
         setUserData(null);
-    };
-
-    // Handle ID verification completion
-    const handleIDVerificationComplete = () => {
-        // Update user data to mark ID verification as complete
-        setUserData(prev => ({
-            ...prev,
-            idVerificationComplete: true
-        }));
     };
 
     return (
@@ -73,7 +66,6 @@ function App() {
                         isAuthenticated ? (
                             <IDVerificationStep
                                 userData={userData}
-                                onVerificationComplete={handleIDVerificationComplete}
                                 onLogout={handleLogout}
                             />
                         ) : (
@@ -82,7 +74,7 @@ function App() {
                     }
                 />
 
-                {/* Verification Complete Route (Stripe returnUrl) */}
+                {/* Verification Complete Route (Stripe returnUrl) - Public Route */}
                 <Route
                     path="/verification/complete"
                     element={<VerificationComplete />}

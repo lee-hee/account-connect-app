@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, AlertCircle, Loader2, LogOut, CheckCircle, Mail } from 'lucide-react';
+import { Shield, AlertCircle, Loader2, LogOut } from 'lucide-react';
 import { createVerificationSession } from '../../services/api';
+import { useNavigate } from 'react-router-dom';
 
 /**
  * ID Verification Step Component with Stripe Identity Integration
@@ -11,13 +12,13 @@ import { createVerificationSession } from '../../services/api';
  * Features:
  * - Stripe Identity verification
  * - Support for both user roles (Accountant and Client)
- * - Email confirmation flow
+ * - Redirects to VerificationComplete page after submission
  * - Uses centralized API methods from api.js
  */
-const IDVerificationStep = ({ userData, onVerificationComplete, onLogout }) => {
+const IDVerificationStep = ({ userData, onLogout }) => {
     const [isLoading, setIsLoading] = useState(false);
-    const [verificationSubmitted, setVerificationSubmitted] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
+    const navigate = useNavigate();
 
     const userRole = userData?.userRole || 'CLIENT';
     const displayName = userData?.email || 'User';
@@ -66,8 +67,8 @@ const IDVerificationStep = ({ userData, onVerificationComplete, onLogout }) => {
                 throw new Error(error.message);
             }
 
-            // If we reach here, user completed or canceled verification
-            setVerificationSubmitted(true);
+            // User completed verification - redirect to VerificationComplete page
+            navigate('/verification/complete');
 
         } catch (error) {
             console.error('❌ Error starting verification:', error);
@@ -132,161 +133,86 @@ const IDVerificationStep = ({ userData, onVerificationComplete, onLogout }) => {
                     </button>
                 </div>
 
-                {/* Initial State - Before verification starts */}
-                {!verificationSubmitted && (
-                    <div className="bg-white rounded-lg shadow-lg p-8">
-                        <div className="mb-8">
-                            <h2 className="text-2xl font-semibold text-gray-800 mb-2">
-                                Verify Your Identity
-                            </h2>
-                            <p className="text-gray-600">
-                                To comply with Australian regulations and ensure the security of your account,
-                                we need to verify your identity using a government-issued ID.
-                            </p>
-                        </div>
-
-                        {/* Information Alert */}
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-8">
-                            <div className="flex items-start gap-3">
-                                <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                                <div className="text-sm text-blue-800">
-                                    <p className="font-medium mb-1">What you'll need</p>
-                                    <ul className="list-disc list-inside space-y-1 ml-2">
-                                        <li>A government-issued photo ID (Driver's License or Passport)</li>
-                                        <li>A device with a camera (phone or webcam)</li>
-                                        <li>Good lighting and a clear background</li>
-                                        <li>About 5 minutes to complete the process</li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Security Notice */}
-                        <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-8">
-                            <div className="flex items-start gap-3">
-                                <Shield className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                                <div className="text-sm text-green-800">
-                                    <p className="font-medium mb-1">Your information is secure</p>
-                                    <p>
-                                        We use Stripe Identity, a trusted verification service that securely
-                                        processes and encrypts your identity documents. Your data is protected
-                                        and will only be used for verification purposes.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Error Message */}
-                        {errorMessage && (
-                            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-                                <p className="text-red-800 text-sm">{errorMessage}</p>
-                            </div>
-                        )}
-
-                        {/* Start Button */}
-                        <button
-                            onClick={handleStartVerification}
-                            disabled={isLoading}
-                            className={`w-full px-6 py-3 rounded-lg font-medium transition-all ${
-                                isLoading
-                                    ? 'bg-indigo-400 cursor-not-allowed'
-                                    : 'bg-indigo-600 hover:bg-indigo-700'
-                            } text-white flex items-center justify-center`}
-                        >
-                            {isLoading ? (
-                                <>
-                                    <Loader2 className="animate-spin mr-2" size={20} />
-                                    Initializing Verification...
-                                </>
-                            ) : (
-                                <>
-                                    <Shield className="mr-2" size={20} />
-                                    Start Verification
-                                </>
-                            )}
-                        </button>
-
-                        <p className="text-xs text-gray-500 text-center mt-4">
-                            By continuing, you agree to Stripe's{' '}
-                            <a href="https://stripe.com/privacy" target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline">
-                                Privacy Policy
-                            </a>
+                {/* Verification Form */}
+                <div className="bg-white rounded-lg shadow-lg p-8">
+                    <div className="mb-8">
+                        <h2 className="text-2xl font-semibold text-gray-800 mb-2">
+                            Verify Your Identity
+                        </h2>
+                        <p className="text-gray-600">
+                            To comply with Australian regulations and ensure the security of your account,
+                            we need to verify your identity using a government-issued ID.
                         </p>
                     </div>
-                )}
 
-                {/* Verification Submitted - Confirmation */}
-                {verificationSubmitted && (
-                    <div className="bg-white rounded-lg shadow-lg p-8">
-                        <div className="text-center">
-                            <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-                                <CheckCircle className="w-8 h-8 text-green-600" />
+                    {/* Information Alert */}
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-8">
+                        <div className="flex items-start gap-3">
+                            <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                            <div className="text-sm text-blue-800">
+                                <p className="font-medium mb-1">What you'll need</p>
+                                <ul className="list-disc list-inside space-y-1 ml-2">
+                                    <li>A government-issued photo ID (Driver's License or Passport)</li>
+                                    <li>A device with a camera (phone or webcam)</li>
+                                    <li>Good lighting and a clear background</li>
+                                    <li>About 5 minutes to complete the process</li>
+                                </ul>
                             </div>
-
-                            <h2 className="text-2xl font-semibold text-gray-800 mb-2">
-                                Verification Submitted
-                            </h2>
-
-                            <p className="text-gray-600 mb-6">
-                                Thank you for completing the identity verification process.
-                            </p>
-
-                            {/* Email Confirmation Notice */}
-                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6 text-left">
-                                <div className="flex items-start gap-3">
-                                    <Mail className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                                    <div className="text-sm text-blue-800">
-                                        <p className="font-semibold mb-2">What happens next?</p>
-                                        <ul className="space-y-2 ml-4 list-disc">
-                                            <li>
-                                                Your identity verification is being processed by our secure verification partner
-                                            </li>
-                                            <li>
-                                                You will receive an email at <strong>{displayName}</strong> within 24 hours
-                                                with the verification outcome
-                                            </li>
-                                            <li>
-                                                If your verification is successful, you'll be able to log in and access your account
-                                            </li>
-                                            <li>
-                                                If additional information is needed, we'll send you instructions via email
-                                            </li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Important Notice */}
-                            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6 text-left">
-                                <div className="flex items-start gap-3">
-                                    <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                                    <div className="text-sm text-amber-800">
-                                        <p className="font-medium mb-1">Please note</p>
-                                        <p>
-                                            Your account will remain pending until the verification process is complete.
-                                            Please check your email regularly for updates.
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Return to Login Button */}
-                            <button
-                                onClick={handleReturnToLogin}
-                                className="px-8 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
-                            >
-                                Return to Login
-                            </button>
-
-                            <p className="text-xs text-gray-500 mt-4">
-                                Need help? Contact our support team at{' '}
-                                <a href="mailto:support@accountconnect.com.au" className="text-indigo-600 hover:underline">
-                                    support@accountconnect.com.au
-                                </a>
-                            </p>
                         </div>
                     </div>
-                )}
+
+                    {/* Security Notice */}
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-8">
+                        <div className="flex items-start gap-3">
+                            <Shield className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                            <div className="text-sm text-green-800">
+                                <p className="font-medium mb-1">Your information is secure</p>
+                                <p>
+                                    We use Stripe Identity, a trusted verification service that securely
+                                    processes and encrypts your identity documents. Your data is protected
+                                    and will only be used for verification purposes.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Error Message */}
+                    {errorMessage && (
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                            <p className="text-red-800 text-sm">{errorMessage}</p>
+                        </div>
+                    )}
+
+                    {/* Start Button */}
+                    <button
+                        onClick={handleStartVerification}
+                        disabled={isLoading}
+                        className={`w-full px-6 py-3 rounded-lg font-medium transition-all ${
+                            isLoading
+                                ? 'bg-indigo-400 cursor-not-allowed'
+                                : 'bg-indigo-600 hover:bg-indigo-700'
+                        } text-white flex items-center justify-center`}
+                    >
+                        {isLoading ? (
+                            <>
+                                <Loader2 className="animate-spin mr-2" size={20} />
+                                Initializing Verification...
+                            </>
+                        ) : (
+                            <>
+                                <Shield className="mr-2" size={20} />
+                                Start Verification
+                            </>
+                        )}
+                    </button>
+
+                    <p className="text-xs text-gray-500 text-center mt-4">
+                        By continuing, you agree to Stripe's{' '}
+                        <a href="https://stripe.com/privacy" target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline">
+                            Privacy Policy
+                        </a>
+                    </p>
+                </div>
             </div>
         </div>
     );

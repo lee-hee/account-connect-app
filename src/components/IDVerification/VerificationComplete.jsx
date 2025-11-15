@@ -4,12 +4,45 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 
 /**
  * Verification Complete Component
- * 
+ *
  * This component is displayed when users return from Stripe Identity verification.
  * It shows a confirmation message and explains the next steps.
- * 
+ *
  * URL: /verification/complete
  */
+
+/**
+ * Utility function to clear all authentication and session data
+ * Ensures user is fully logged out
+ */
+const clearAuthSession = () => {
+    // List of common authentication-related localStorage keys
+    const authKeys = [
+        'authToken',
+        'token',
+        'accessToken',
+        'refreshToken',
+        'userData',
+        'user',
+        'userEmail',
+        'verificationSessionId',
+        'isAuthenticated',
+        'sessionId',
+        'jwt',
+        'auth'
+    ];
+
+    // Remove all auth-related keys
+    authKeys.forEach(key => {
+        localStorage.removeItem(key);
+    });
+
+    // Clear all sessionStorage
+    sessionStorage.clear();
+
+    console.log('✅ All authentication session data cleared');
+};
+
 const VerificationComplete = () => {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
@@ -19,6 +52,10 @@ const VerificationComplete = () => {
     const userEmail = searchParams.get('email') || localStorage.getItem('userEmail') || 'your email';
 
     useEffect(() => {
+        // Clear authentication session immediately when component mounts
+        // This ensures user must log in again after verification
+        clearAuthSession();
+
         // Simulate a brief loading state
         const timer = setTimeout(() => {
             setIsLoading(false);
@@ -28,12 +65,13 @@ const VerificationComplete = () => {
     }, []);
 
     const handleReturnToLogin = () => {
-        // Clear any stored session data
-        localStorage.removeItem('userEmail');
-        localStorage.removeItem('verificationSessionId');
-        
-        // Navigate to login page
-        navigate('/login');
+        // Clear all authentication and session data
+        clearAuthSession();
+
+        console.log('✅ Session cleared - redirecting to login');
+
+        // Navigate to login page with replace to prevent going back
+        navigate('/login', { replace: true });
     };
 
     if (isLoading) {
@@ -70,7 +108,7 @@ const VerificationComplete = () => {
                         <h2 className="text-xl font-semibold text-gray-800 mb-4">
                             What happens next?
                         </h2>
-                        
+
                         <div className="space-y-4">
                             {/* Step 1 */}
                             <div className="flex items-start gap-4">
@@ -190,8 +228,8 @@ const VerificationComplete = () => {
                         <p className="text-sm text-gray-600">
                             Need help or have questions?
                         </p>
-                        <a 
-                            href="mailto:support@accountconnect.com.au" 
+                        <a
+                            href="mailto:support@accountconnect.com.au"
                             className="text-indigo-600 hover:underline font-medium text-sm"
                         >
                             Contact Support Team
@@ -208,28 +246,28 @@ const VerificationComplete = () => {
                         <div>
                             <p className="font-medium text-gray-700">How long does verification take?</p>
                             <p className="text-gray-600 mt-1">
-                                Most verifications are processed within a few minutes to a few hours. 
+                                Most verifications are processed within a few minutes to a few hours.
                                 In some cases, it may take up to 24 hours.
                             </p>
                         </div>
                         <div>
                             <p className="font-medium text-gray-700">What if my verification fails?</p>
                             <p className="text-gray-600 mt-1">
-                                You will receive an email with specific reasons and instructions on how to resubmit 
+                                You will receive an email with specific reasons and instructions on how to resubmit
                                 your verification with the correct information or documents.
                             </p>
                         </div>
                         <div>
                             <p className="font-medium text-gray-700">Is my information secure?</p>
                             <p className="text-gray-600 mt-1">
-                                Yes. We use Stripe Identity, a trusted and secure verification service that encrypts 
+                                Yes. We use Stripe Identity, a trusted and secure verification service that encrypts
                                 and protects all your personal information and documents.
                             </p>
                         </div>
                         <div>
                             <p className="font-medium text-gray-700">Can I start using my account now?</p>
                             <p className="text-gray-600 mt-1">
-                                No, you must wait for the verification to be approved before you can log in and 
+                                No, you must wait for the verification to be approved before you can log in and
                                 access your account. You will receive an email once your account is activated.
                             </p>
                         </div>

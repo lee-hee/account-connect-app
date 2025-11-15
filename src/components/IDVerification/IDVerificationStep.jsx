@@ -1,139 +1,162 @@
-import React, { useState, useEffect } from 'react';
-import { Upload, Check, AlertCircle, Loader2, LogOut } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Shield, AlertCircle, Loader2, LogOut, CheckCircle, Mail } from 'lucide-react';
 
 /**
- * ID Verification Step Component
+ * ID Verification Step Component with Stripe Identity Integration
  *
- * This component handles the ID verification process for both Accountants and Clients.
- * It's a prerequisite step before accessing any dashboard or registration form.
+ * This component handles the ID verification process for both Accountants and Clients
+ * using Stripe Identity's embedded verification flow.
  *
  * Features:
- * - Document upload (Photo ID, License, Passport)
- * - Verification status tracking
- * - Loading states
- * - Error handling
+ * - Stripe Identity embedded verification
  * - Support for both user roles (Accountant and Client)
+ * - Email confirmation flow
+ * - No polling - user submits and receives email notification
  */
 const IDVerificationStep = ({ userData, onVerificationComplete, onLogout }) => {
-    const [step, setStep] = useState(1); // 1: Initial, 2: Upload, 3: Processing, 4: Complete/Failed
-    const [selectedDocument, setSelectedDocument] = useState(null);
-    const [uploadedFile, setUploadedFile] = useState(null);
-    const [isUploading, setIsUploading] = useState(false);
-    const [verificationStatus, setVerificationStatus] = useState(null); // 'pending', 'verified', 'failed'
+    const [isLoading, setIsLoading] = useState(false);
+    const [verificationStarted, setVerificationStarted] = useState(false);
+    const [verificationSubmitted, setVerificationSubmitted] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
+    const [clientSecret, setClientSecret] = useState(null);
+
+    const verificationElementRef = useRef(null);
+    const stripeIdentityRef = useRef(null);
 
     const userRole = userData?.userRole || 'CLIENT';
     const displayName = userData?.email || 'User';
 
     /**
-     * Handle document type selection
+     * Load Stripe Identity script
      */
-    const handleDocumentSelect = (docType) => {
-        setSelectedDocument(docType);
-        setStep(2);
-    };
+    useEffect(() => {
+        const script = document.createElement('script');
+        script.src = 'https://js.stripe.com/v3/';
+        script.async = true;
+        script.onload = () => {
+            console.log('✅ Stripe.js loaded successfully');
+        };
+        document.body.appendChild(script);
+
+        return () => {
+            // Clean up script on unmount
+            if (document.body.contains(script)) {
+                document.body.removeChild(script);
+            }
+        };
+    }, []);
 
     /**
-     * Handle file upload
+     * Create verification session
+     * In production, this would call your backend to create a Stripe verification session
      */
-    const handleFileUpload = async (event) => {
-        const file = event.target.files?.[0];
-
-        if (!file) {
-            return;
-        }
-
-        // Validate file type
-        const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
-        if (!allowedTypes.includes(file.type)) {
-            setErrorMessage('Please upload a valid image (JPG, PNG) or PDF file');
-            return;
-        }
-
-        // Validate file size (max 5MB)
-        const maxSize = 5 * 1024 * 1024; // 5MB
-        if (file.size > maxSize) {
-            setErrorMessage('File size must be less than 5MB');
-            return;
-        }
-
-        setUploadedFile(file);
+    const createVerificationSession = async () => {
+        setIsLoading(true);
         setErrorMessage('');
-
-        // Simulate upload and verification process
-        await simulateUploadAndVerification(file);
-    };
-
-    /**
-     * Simulate the upload and verification process
-     * In a real application, this would:
-     * 1. Upload the file to the backend
-     * 2. The backend would perform ID verification (OCR, face detection, etc.)
-     * 3. Return verification status
-     */
-    const simulateUploadAndVerification = async (file) => {
-        setIsUploading(true);
-        setStep(3);
-        setVerificationStatus('pending');
 
         try {
-            // In a real application, you would upload to your backend API
-            // const formData = new FormData();
-            // formData.append('document', file);
-            // formData.append('documentType', selectedDocument);
-            // formData.append('userId', userData.id);
-            //
-            // const response = await fetch(`${API_BASE_URL}/id-verification/upload`, {
-            //     method: 'POST',
-            //     body: formData
-            // });
-            //
-            // if (!response.ok) {
-            //     throw new Error('Verification failed');
-            // }
-            //
-            // const result = await response.json();
-            // setVerificationStatus(result.verified ? 'verified' : 'failed');
+            const response = await fetch(`${API_BASE_URL}/id-verification/create-session`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    userId: userData.id,
+                    email: userData.email,
+                    userRole: userData.userRole
+                })
+            });
 
-            // Simulate API delay
-            await new Promise(resolve => setTimeout(resolve, 2000));
-
-            // Mock verification success (90% of the time)
-            // In production, this would be based on actual verification service
-            const isVerified = Math.random() > 0.1;
-
-            if (isVerified) {
-                setVerificationStatus('verified');
-                // Auto-proceed after 2 seconds
-                setTimeout(() => {
-                    setStep(4);
-                    // Call completion handler
-                    onVerificationComplete?.();
-                }, 2000);
-            } else {
-                setVerificationStatus('failed');
-                setErrorMessage('ID verification failed. Please ensure the document is clear and valid.');
-                setStep(4);
+            if (!response.ok) {
+                throw new Error('Failed to create verification session');
             }
+
+            const data = await response.json();
+            return data.clientSecret;
+
         } catch (error) {
-            console.error('Verification error:', error);
-            setVerificationStatus('failed');
-            setErrorMessage('An error occurred during verification. Please try again.');
-            setStep(4);
+            console.error('❌ Error creating verification session:', error);
+            setErrorMessage('Failed to initialize verification. Please try again.');
+            throw error;
         } finally {
-            setIsUploading(false);
+            setIsLoading(false);
         }
     };
 
     /**
-     * Reset the verification process
+     * Initialize Stripe Identity verification
      */
-    const handleReset = () => {
-        setStep(1);
-        setSelectedDocument(null);
-        setUploadedFile(null);
-        setVerificationStatus(null);
-        setErrorMessage('');
+    const initializeStripeVerification = async (secret) => {
+        try {
+            if (!window.Stripe) {
+                throw new Error('Stripe.js not loaded');
+            }
+
+            // TODO: Replace with your actual Stripe publishable key
+            // Get this from your Stripe dashboard
+            const stripe = window.Stripe('pk_test_51SJQSyRptfmwcvKRus8IxgUjzmZP6WbOVj6MH9RH0pED5HrsKxOvQwGPqarwUvjI2SHu50fipk6DI7VPPOpTFISY00aenlCMtQ');
+
+            // Create the verification element
+            const verificationElement = stripe.verifyIdentity(secret);
+
+            // Mount the element to the DOM
+            verificationElement.mount(verificationElementRef.current);
+
+            stripeIdentityRef.current = verificationElement;
+
+            // Listen for verification events
+            verificationElement.on('submit', () => {
+                console.log('✅ Verification submitted by user');
+                handleVerificationSubmit();
+            });
+
+            verificationElement.on('error', (error) => {
+                console.error('❌ Verification error:', error);
+                setErrorMessage('An error occurred during verification. Please try again.');
+            });
+
+        } catch (error) {
+            console.error('❌ Error initializing Stripe verification:', error);
+            setErrorMessage('Failed to load verification interface. Please refresh the page.');
+        }
+    };
+
+    /**
+     * Start verification process
+     */
+    const handleStartVerification = async () => {
+        try {
+            const secret = await createVerificationSession();
+            setClientSecret(secret);
+            setVerificationStarted(true);
+
+            // Wait for next render to mount the element
+            setTimeout(() => {
+                initializeStripeVerification(secret);
+            }, 100);
+
+        } catch (error) {
+            // Error already handled in createVerificationSession
+        }
+    };
+
+    /**
+     * Handle verification submission
+     */
+    const handleVerificationSubmit = () => {
+        setVerificationSubmitted(true);
+
+        // Unmount the verification element
+        if (stripeIdentityRef.current) {
+            stripeIdentityRef.current.unmount();
+        }
+    };
+
+    /**
+     * Return to login
+     */
+    const handleReturnToLogin = () => {
+        onLogout();
     };
 
     return (
@@ -156,15 +179,16 @@ const IDVerificationStep = ({ userData, onVerificationComplete, onLogout }) => {
                     </button>
                 </div>
 
-                {/* Step 1: Document Type Selection */}
-                {step === 1 && (
+                {/* Initial State - Before verification starts */}
+                {!verificationStarted && !verificationSubmitted && (
                     <div className="bg-white rounded-lg shadow-lg p-8">
                         <div className="mb-8">
                             <h2 className="text-2xl font-semibold text-gray-800 mb-2">
                                 Verify Your Identity
                             </h2>
                             <p className="text-gray-600">
-                                Please select the type of ID document you'd like to use for verification.
+                                To comply with Australian regulations and ensure the security of your account,
+                                we need to verify your identity using a government-issued ID.
                             </p>
                         </div>
 
@@ -173,85 +197,30 @@ const IDVerificationStep = ({ userData, onVerificationComplete, onLogout }) => {
                             <div className="flex items-start gap-3">
                                 <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
                                 <div className="text-sm text-blue-800">
-                                    <p className="font-medium mb-1">Why we need this</p>
-                                    <p>
-                                        ID verification is required to comply with Australian regulations and ensure the security of your account.
-                                        All documents are securely processed and stored.
-                                    </p>
+                                    <p className="font-medium mb-1">What you'll need</p>
+                                    <ul className="list-disc list-inside space-y-1 ml-2">
+                                        <li>A government-issued photo ID (Driver's License or Passport)</li>
+                                        <li>A device with a camera (phone or webcam)</li>
+                                        <li>Good lighting and a clear background</li>
+                                        <li>About 5 minutes to complete the process</li>
+                                    </ul>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Document Type Options */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            {[
-                                {
-                                    type: 'DRIVERS_LICENSE',
-                                    name: 'Driver\'s License',
-                                    description: 'Australian Driver\'s License'
-                                },
-                                {
-                                    type: 'PASSPORT',
-                                    name: 'Passport',
-                                    description: 'Australian Passport'
-                                },
-                                {
-                                    type: 'PHOTO_ID',
-                                    name: 'Photo ID',
-                                    description: 'Other official photo ID'
-                                }
-                            ].map((doc) => (
-                                <button
-                                    key={doc.type}
-                                    onClick={() => handleDocumentSelect(doc.type)}
-                                    className="p-6 border-2 border-gray-300 rounded-lg hover:border-indigo-600 hover:bg-indigo-50 transition-all text-left"
-                                >
-                                    <h3 className="text-lg font-semibold text-gray-800 mb-1">
-                                        {doc.name}
-                                    </h3>
-                                    <p className="text-sm text-gray-600">
-                                        {doc.description}
+                        {/* Security Notice */}
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-8">
+                            <div className="flex items-start gap-3">
+                                <Shield className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                                <div className="text-sm text-green-800">
+                                    <p className="font-medium mb-1">Your information is secure</p>
+                                    <p>
+                                        We use Stripe Identity, a trusted verification service that securely
+                                        processes and encrypts your identity documents. Your data is protected
+                                        and will only be used for verification purposes.
                                     </p>
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {/* Step 2: Document Upload */}
-                {step === 2 && (
-                    <div className="bg-white rounded-lg shadow-lg p-8">
-                        <div className="mb-8">
-                            <h2 className="text-2xl font-semibold text-gray-800 mb-2">
-                                Upload Your {selectedDocument?.replace('_', ' ')}
-                            </h2>
-                            <p className="text-gray-600">
-                                Please upload a clear image or PDF of your document.
-                            </p>
-                        </div>
-
-                        {/* Upload Area */}
-                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center mb-6 hover:border-indigo-500 transition-colors">
-                            <input
-                                type="file"
-                                id="document-upload"
-                                accept=".jpg,.jpeg,.png,.pdf"
-                                onChange={handleFileUpload}
-                                disabled={isUploading}
-                                className="hidden"
-                            />
-                            <label
-                                htmlFor="document-upload"
-                                className="flex flex-col items-center cursor-pointer"
-                            >
-                                <Upload className="w-12 h-12 text-gray-400 mb-3" />
-                                <span className="text-lg font-medium text-gray-700 mb-1">
-                                    Click to upload or drag and drop
-                                </span>
-                                <span className="text-sm text-gray-500">
-                                    JPG, PNG or PDF (max. 5MB)
-                                </span>
-                            </label>
+                                </div>
+                            </div>
                         </div>
 
                         {/* Error Message */}
@@ -261,110 +230,144 @@ const IDVerificationStep = ({ userData, onVerificationComplete, onLogout }) => {
                             </div>
                         )}
 
-                        {/* File Info */}
-                        {uploadedFile && (
-                            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-                                <p className="text-green-800 text-sm">
-                                    <strong>Selected file:</strong> {uploadedFile.name}
-                                </p>
-                            </div>
-                        )}
+                        {/* Start Button */}
+                        <button
+                            onClick={handleStartVerification}
+                            disabled={isLoading}
+                            className={`w-full px-6 py-3 rounded-lg font-medium transition-all ${
+                                isLoading
+                                    ? 'bg-indigo-400 cursor-not-allowed'
+                                    : 'bg-indigo-600 hover:bg-indigo-700'
+                            } text-white flex items-center justify-center`}
+                        >
+                            {isLoading ? (
+                                <>
+                                    <Loader2 className="animate-spin mr-2" size={20} />
+                                    Initializing...
+                                </>
+                            ) : (
+                                <>
+                                    <Shield className="mr-2" size={20} />
+                                    Start Verification
+                                </>
+                            )}
+                        </button>
 
-                        {/* Instructions */}
-                        <div className="bg-gray-50 rounded-lg p-4 mb-6">
-                            <h3 className="font-medium text-gray-700 mb-2">Tips for best results:</h3>
-                            <ul className="text-sm text-gray-600 space-y-1">
-                                <li>• Ensure the entire document is visible and in focus</li>
-                                <li>• Use good lighting to avoid shadows or glare</li>
-                                <li>• Document should be unfolded and flat</li>
-                                <li>• All four corners should be visible</li>
-                            </ul>
-                        </div>
-
-                        {/* Action Buttons */}
-                        <div className="flex gap-3">
-                            <button
-                                onClick={() => setStep(1)}
-                                disabled={isUploading}
-                                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 font-medium"
-                            >
-                                Back
-                            </button>
-                            <button
-                                onClick={() => {
-                                    if (!uploadedFile) {
-                                        setErrorMessage('Please select a file first');
-                                        return;
-                                    }
-                                    // File upload is triggered on file selection
-                                }}
-                                disabled={isUploading || !uploadedFile}
-                                className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 font-medium"
-                            >
-                                {isUploading ? 'Uploading...' : 'Upload'}
-                            </button>
-                        </div>
-                    </div>
-                )}
-
-                {/* Step 3: Processing */}
-                {step === 3 && verificationStatus === 'pending' && (
-                    <div className="bg-white rounded-lg shadow-lg p-8 text-center">
-                        <Loader2 className="w-16 h-16 text-indigo-600 mx-auto mb-4 animate-spin" />
-                        <h2 className="text-2xl font-semibold text-gray-800 mb-2">
-                            Verifying Your ID
-                        </h2>
-                        <p className="text-gray-600">
-                            Please wait while we verify your document. This usually takes 1-2 minutes.
+                        <p className="text-xs text-gray-500 text-center mt-4">
+                            By continuing, you agree to Stripe's{' '}
+                            <a href="https://stripe.com/privacy" target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline">
+                                Privacy Policy
+                            </a>
                         </p>
                     </div>
                 )}
 
-                {/* Step 4: Results */}
-                {step === 4 && (
+                {/* Verification In Progress */}
+                {verificationStarted && !verificationSubmitted && (
                     <div className="bg-white rounded-lg shadow-lg p-8">
-                        {verificationStatus === 'verified' && (
-                            <div className="text-center">
-                                <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-                                    <Check className="w-8 h-8 text-green-600" />
-                                </div>
-                                <h2 className="text-2xl font-semibold text-gray-800 mb-2">
-                                    Verification Complete
-                                </h2>
-                                <p className="text-gray-600 mb-6">
-                                    Your ID has been successfully verified. You can now access your account.
-                                </p>
-                                <button
-                                    onClick={() => {
-                                        // The route will automatically redirect based on role
-                                        window.location.href = '/';
-                                    }}
-                                    className="px-8 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
-                                >
-                                    Continue to Dashboard
-                                </button>
+                        <div className="mb-6">
+                            <h2 className="text-2xl font-semibold text-gray-800 mb-2">
+                                Identity Verification
+                            </h2>
+                            <p className="text-gray-600 text-sm">
+                                Please follow the instructions below to complete your identity verification.
+                            </p>
+                        </div>
+
+                        {/* Stripe Identity Element Container */}
+                        <div
+                            ref={verificationElementRef}
+                            className="min-h-[500px]"
+                        ></div>
+
+                        {/* Error Message */}
+                        {errorMessage && (
+                            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mt-6">
+                                <p className="text-red-800 text-sm">{errorMessage}</p>
                             </div>
                         )}
 
-                        {verificationStatus === 'failed' && (
-                            <div className="text-center">
-                                <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
-                                    <AlertCircle className="w-8 h-8 text-red-600" />
-                                </div>
-                                <h2 className="text-2xl font-semibold text-gray-800 mb-2">
-                                    Verification Failed
-                                </h2>
-                                <p className="text-gray-600 mb-6">
-                                    {errorMessage || 'We couldn\'t verify your ID. Please try again with a clearer image or different document.'}
-                                </p>
-                                <button
-                                    onClick={handleReset}
-                                    className="px-8 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
-                                >
-                                    Try Again
-                                </button>
+                        {/* Help Text */}
+                        <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+                            <p className="text-sm text-gray-600">
+                                <strong>Having trouble?</strong> Make sure you have good lighting and that your
+                                entire ID is visible in the frame. If you continue to experience issues, please
+                                contact our support team.
+                            </p>
+                        </div>
+                    </div>
+                )}
+
+                {/* Verification Submitted - Confirmation */}
+                {verificationSubmitted && (
+                    <div className="bg-white rounded-lg shadow-lg p-8">
+                        <div className="text-center">
+                            <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                                <CheckCircle className="w-8 h-8 text-green-600" />
                             </div>
-                        )}
+
+                            <h2 className="text-2xl font-semibold text-gray-800 mb-2">
+                                Verification Submitted
+                            </h2>
+
+                            <p className="text-gray-600 mb-6">
+                                Thank you for completing the identity verification process.
+                            </p>
+
+                            {/* Email Confirmation Notice */}
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6 text-left">
+                                <div className="flex items-start gap-3">
+                                    <Mail className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                                    <div className="text-sm text-blue-800">
+                                        <p className="font-semibold mb-2">What happens next?</p>
+                                        <ul className="space-y-2 ml-4 list-disc">
+                                            <li>
+                                                Your identity verification is being processed by our secure verification partner
+                                            </li>
+                                            <li>
+                                                You will receive an email at <strong>{displayName}</strong> within 24 hours
+                                                with the verification outcome
+                                            </li>
+                                            <li>
+                                                If your verification is successful, you'll be able to log in and access your account
+                                            </li>
+                                            <li>
+                                                If additional information is needed, we'll send you instructions via email
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Important Notice */}
+                            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6 text-left">
+                                <div className="flex items-start gap-3">
+                                    <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                                    <div className="text-sm text-amber-800">
+                                        <p className="font-medium mb-1">Please note</p>
+                                        <p>
+                                            Your account will remain pending until the verification process is complete.
+                                            Please check your email regularly for updates.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Return to Login Button */}
+                            <button
+                                onClick={handleReturnToLogin}
+                                className="px-8 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+                            >
+                                Return to Login
+                            </button>
+
+                            <p className="text-xs text-gray-500 mt-4">
+                                Need help? Contact our support team at{' '}
+                                <a href="mailto:support@accountconnect.com.au" className="text-indigo-600 hover:underline">
+                                    support@accountconnect.com.au
+                                </a>
+                            </p>
+                        </div>
                     </div>
                 )}
             </div>

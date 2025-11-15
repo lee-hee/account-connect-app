@@ -1194,8 +1194,8 @@ export const provisionClient = async (clientData) => {
 };
 
 /**
- * STRIPE IDENTITY VERIFICATION API FUNCTIONS
- */
+* STRIPE IDENTITY VERIFICATION API FUNCTIONS
+*/
 
 /**
  * Create a Stripe Identity verification session

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Shield, AlertCircle, Loader2, LogOut, CheckCircle, Mail } from 'lucide-react';
 import { createVerificationSession } from '../../services/api';
 
@@ -6,94 +6,34 @@ import { createVerificationSession } from '../../services/api';
  * ID Verification Step Component with Stripe Identity Integration
  *
  * This component handles the ID verification process for both Accountants and Clients
- * using Stripe Identity's embedded verification flow.
+ * using Stripe Identity's redirect-based verification flow.
  *
  * Features:
- * - Stripe Identity embedded verification
+ * - Stripe Identity verification
  * - Support for both user roles (Accountant and Client)
  * - Email confirmation flow
  * - Uses centralized API methods from api.js
  */
 const IDVerificationStep = ({ userData, onVerificationComplete, onLogout }) => {
     const [isLoading, setIsLoading] = useState(false);
-    const [verificationStarted, setVerificationStarted] = useState(false);
     const [verificationSubmitted, setVerificationSubmitted] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
-    const [clientSecret, setClientSecret] = useState(null);
-
-    const verificationElementRef = useRef(null);
-    const stripeIdentityRef = useRef(null);
 
     const userRole = userData?.userRole || 'CLIENT';
     const displayName = userData?.email || 'User';
 
     /**
-     * Load Stripe Identity script
-     */
-    useEffect(() => {
-        const script = document.createElement('script');
-        script.src = 'https://js.stripe.com/v3/';
-        script.async = true;
-        script.onload = () => {
-            console.log('✅ Stripe.js loaded successfully');
-        };
-        document.body.appendChild(script);
-
-        return () => {
-            // Clean up script on unmount
-            if (document.body.contains(script)) {
-                document.body.removeChild(script);
-            }
-        };
-    }, []);
-
-    /**
-     * Initialize Stripe Identity verification
-     */
-    const initializeStripeVerification = async (secret) => {
-        try {
-            if (!window.Stripe) {
-                throw new Error('Stripe.js not loaded');
-            }
-
-            // TODO: Replace with your actual Stripe publishable key
-            // Get this from your Stripe dashboard
-            const stripe = window.Stripe('pk_test_51SJQSyRptfmwcvKRus8IxgUjzmZP6WbOVj6MH9RH0pED5HrsKxOvQwGPqarwUvjI2SHu50fipk6DI7VPPOpTFISY00aenlCMtQ');
-
-            // Create the verification element
-            const verificationElement = stripe.verifyIdentity(secret);
-
-            // Mount the element to the DOM
-            verificationElement.mount(verificationElementRef.current);
-
-            stripeIdentityRef.current = verificationElement;
-
-            // Listen for verification events
-            verificationElement.on('submit', () => {
-                console.log('✅ Verification submitted by user');
-                handleVerificationSubmit();
-            });
-
-            verificationElement.on('error', (error) => {
-                console.error('❌ Verification error:', error);
-                setErrorMessage('An error occurred during verification. Please try again.');
-            });
-
-        } catch (error) {
-            console.error('❌ Error initializing Stripe verification:', error);
-            setErrorMessage('Failed to load verification interface. Please refresh the page.');
-        }
-    };
-
-    /**
      * Start verification process
-     * Now uses centralized API method from api.js
+     * Creates session and redirects to Stripe Identity
      */
     const handleStartVerification = async () => {
         setIsLoading(true);
         setErrorMessage('');
 
         try {
+            // Store email in localStorage for the return page
+            localStorage.setItem('userEmail', userData.email);
+
             // Call the API method from api.js
             const response = await createVerificationSession(
                 userData.userId,
@@ -105,14 +45,29 @@ const IDVerificationStep = ({ userData, onVerificationComplete, onLogout }) => {
                 throw new Error(response.message || 'Failed to create verification session');
             }
 
-            const secret = response.clientSecret;
-            setClientSecret(secret);
-            setVerificationStarted(true);
+            const clientSecret = response.clientSecret;
+            const sessionId = response.verificationSessionId;
 
-            // Wait for next render to mount the element
-            setTimeout(() => {
-                initializeStripeVerification(secret);
-            }, 100);
+            // Store session ID for potential status checks
+            localStorage.setItem('verificationSessionId', sessionId);
+
+            // Check if Stripe is loaded
+            if (!window.Stripe) {
+                throw new Error('Stripe.js not loaded. Please refresh the page.');
+            }
+
+            // Initialize Stripe
+            const stripe = window.Stripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY || 'pk_test_51SJQSyRptfmwcvKRus8IxgUjzmZP6WbOVj6MH9RH0pED5HrsKxOvQwGPqarwUvjI2SHu50fipk6DI7VPPOpTFISY00aenlCMtQ');
+
+            // Redirect to Stripe Identity verification
+            const { error } = await stripe.verifyIdentity(clientSecret);
+
+            if (error) {
+                throw new Error(error.message);
+            }
+
+            // If we reach here, user completed or canceled verification
+            setVerificationSubmitted(true);
 
         } catch (error) {
             console.error('❌ Error starting verification:', error);
@@ -123,23 +78,39 @@ const IDVerificationStep = ({ userData, onVerificationComplete, onLogout }) => {
     };
 
     /**
-     * Handle verification submission
-     */
-    const handleVerificationSubmit = () => {
-        setVerificationSubmitted(true);
-
-        // Unmount the verification element
-        if (stripeIdentityRef.current) {
-            stripeIdentityRef.current.unmount();
-        }
-    };
-
-    /**
      * Return to login
      */
     const handleReturnToLogin = () => {
         onLogout();
     };
+
+    /**
+     * Load Stripe.js script only once
+     */
+    useEffect(() => {
+        // Check if Stripe script is already loaded
+        if (window.Stripe) {
+            console.log('✅ Stripe.js already loaded');
+            return;
+        }
+
+        // Load Stripe script
+        const script = document.createElement('script');
+        script.src = 'https://js.stripe.com/v3/';
+        script.async = true;
+        script.onload = () => {
+            console.log('✅ Stripe.js loaded successfully');
+        };
+        script.onerror = () => {
+            console.error('❌ Failed to load Stripe.js');
+            setErrorMessage('Failed to load verification system. Please refresh the page.');
+        };
+
+        document.body.appendChild(script);
+
+        // Cleanup is intentionally not done to keep Stripe.js loaded
+        // This prevents the "loaded more than once" error
+    }, []); // Empty dependency array - only run once
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
@@ -162,7 +133,7 @@ const IDVerificationStep = ({ userData, onVerificationComplete, onLogout }) => {
                 </div>
 
                 {/* Initial State - Before verification starts */}
-                {!verificationStarted && !verificationSubmitted && (
+                {!verificationSubmitted && (
                     <div className="bg-white rounded-lg shadow-lg p-8">
                         <div className="mb-8">
                             <h2 className="text-2xl font-semibold text-gray-800 mb-2">
@@ -225,7 +196,7 @@ const IDVerificationStep = ({ userData, onVerificationComplete, onLogout }) => {
                             {isLoading ? (
                                 <>
                                     <Loader2 className="animate-spin mr-2" size={20} />
-                                    Initializing...
+                                    Initializing Verification...
                                 </>
                             ) : (
                                 <>
@@ -241,42 +212,6 @@ const IDVerificationStep = ({ userData, onVerificationComplete, onLogout }) => {
                                 Privacy Policy
                             </a>
                         </p>
-                    </div>
-                )}
-
-                {/* Verification In Progress */}
-                {verificationStarted && !verificationSubmitted && (
-                    <div className="bg-white rounded-lg shadow-lg p-8">
-                        <div className="mb-6">
-                            <h2 className="text-2xl font-semibold text-gray-800 mb-2">
-                                Identity Verification
-                            </h2>
-                            <p className="text-gray-600 text-sm">
-                                Please follow the instructions below to complete your identity verification.
-                            </p>
-                        </div>
-
-                        {/* Stripe Identity Element Container */}
-                        <div
-                            ref={verificationElementRef}
-                            className="min-h-[500px]"
-                        ></div>
-
-                        {/* Error Message */}
-                        {errorMessage && (
-                            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mt-6">
-                                <p className="text-red-800 text-sm">{errorMessage}</p>
-                            </div>
-                        )}
-
-                        {/* Help Text */}
-                        <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                            <p className="text-sm text-gray-600">
-                                <strong>Having trouble?</strong> Make sure you have good lighting and that your
-                                entire ID is visible in the frame. If you continue to experience issues, please
-                                contact our support team.
-                            </p>
-                        </div>
                     </div>
                 )}
 

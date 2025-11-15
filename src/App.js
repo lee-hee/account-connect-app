@@ -5,7 +5,8 @@ import AccountantDashboard from './components/accountant/AccountantDashboard';
 import ClientRegistrationForm from './components/client/ClientRegistrationForm';
 import AccountantSignup from './components/accountant/AccountantSignup';
 import Dashboard from './components/client/Dashboard';
-import IDVerificationStep from './components/IDVerification/IDVerificationStep'; // New component
+import IDVerificationStep from './components/IDVerification/IDVerificationStep';
+import VerificationComplete from './components/IDVerification/VerificationComplete'
 
 function App() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -79,6 +80,12 @@ function App() {
                             <Navigate to="/login" replace />
                         )
                     }
+                />
+
+                {/* Verification Complete Route (Stripe returnUrl) */}
+                <Route
+                    path="/verification/complete"
+                    element={<VerificationComplete />}
                 />
 
                 {/* Protected Routes - Accountant */}

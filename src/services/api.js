@@ -193,89 +193,8 @@ export const saveStepData = async (formData, step) => {
         };
         break;
 
-      case 5: // Business Entities
-        endpoint = `${API_BASE_URL}/clients/save-business-entities`;
-        stepData = {
-          clientId: formData.clientId, // Include clientId
-          // Sole Trader
-          soleTrader: formData.soleTrader ? {
-            abn: formData.soleTrader.abn ? parseInt(formData.soleTrader.abn) : null,
-            gstRegistered: formData.soleTrader.gstRegistered || false,
-            tradingName: formData.soleTrader.tradingNames?.filter(name => name.trim() !== '') || [],
-            businessAddress: formData.soleTrader.businessAddress || null,
-            registeredAddress: formData.soleTrader.registeredAddress || null,
-            usePrimaryBanking: formData.soleTrader.usePrimaryBanking !== undefined ? formData.soleTrader.usePrimaryBanking : true,
-            bankName: formData.soleTrader.bankName || null,
-            accountName: formData.soleTrader.accountName || null,
-            bsb: formData.soleTrader.bsb || null,
-            accountNumber: formData.soleTrader.accountNumber || null
-          } : null,
-
-          // Companies
-          companyList: (formData.companies || []).map(company => ({
-            abn: company.abn ? parseInt(company.abn) : null,
-            acn: company.acn ? parseInt(company.acn) : null,
-            gstRegistered: company.gstRegistered || false,
-            businessAddress: company.businessAddress || null,
-            registeredAddress: company.registeredAddress || null,
-            tfn: company.tfn ? parseInt(company.tfn) : null,
-            tradingNames: company.tradingNames?.filter(name => name.trim() !== '') || [],
-            asicIndustryCodes: company.asicIndustryCodes?.filter(code => code.trim() !== '') || [],
-            usePrimaryBanking: company.usePrimaryBanking !== undefined ? company.usePrimaryBanking : true,
-            bankName: company.bankName || null,
-            accountName: company.accountName || null,
-            bsb: company.bsb || null,
-            accountNumber: company.accountNumber || null
-          })),
-
-          // Trusts
-          trustList: (formData.trusts || []).map(trust => ({
-            abn: trust.abn ? parseInt(trust.abn) : null,
-            gstRegistered: trust.gstRegistered || false,
-            trustType: trust.trustType || null,
-            businessAddress: trust.businessAddress || null,
-            registeredAddress: trust.registeredAddress || null,
-            tfn: trust.tfn ? parseInt(trust.tfn) : null,
-            tradingNames: trust.tradingNames?.filter(name => name.trim() !== '') || [],
-            asicIndustryCodes: trust.asicIndustryCodes?.filter(code => code.trim() !== '') || [],
-            usePrimaryBanking: trust.usePrimaryBanking !== undefined ? trust.usePrimaryBanking : true,
-            bankName: trust.bankName || null,
-            accountName: trust.accountName || null,
-            bsb: trust.bsb || null,
-            accountNumber: trust.accountNumber || null
-          })),
-
-          // SMSFs
-          smsfList: (formData.smsfs || []).map(smsf => ({
-            abn: smsf.abn ? parseInt(smsf.abn) : null,
-            gstRegistered: smsf.gstRegistered || false,
-            businessAddress: smsf.businessAddress || null,
-            registeredAddress: smsf.registeredAddress || null,
-            tfn: smsf.tfn ? parseInt(smsf.tfn) : null,
-            tradingNames: smsf.tradingNames?.filter(name => name.trim() !== '') || [],
-            asicIndustryCodes: smsf.asicIndustryCodes?.filter(code => code.trim() !== '') || [],
-            usePrimaryBanking: smsf.usePrimaryBanking !== undefined ? smsf.usePrimaryBanking : true,
-            bankName: smsf.bankName || null,
-            accountName: smsf.accountName || null,
-            bsb: smsf.bsb || null,
-            accountNumber: smsf.accountNumber || null
-          })),
-
-          // Partnerships
-          partnerships: (formData.partnerships || []).map(partnership => ({
-            abn: partnership.abn ? parseInt(partnership.abn) : null,
-            gstRegistered: partnership.gstRegistered || false,
-            businessAddress: partnership.businessAddress || null,
-            tfn: partnership.tfn ? parseInt(partnership.tfn) : null,
-            tradingNames: partnership.tradingNames?.filter(name => name.trim() !== '') || [],
-            usePrimaryBanking: partnership.usePrimaryBanking !== undefined ? partnership.usePrimaryBanking : true,
-            bankName: partnership.bankName || null,
-            accountName: partnership.accountName || null,
-            bsb: partnership.bsb || null,
-            accountNumber: partnership.accountNumber || null
-          }))
-        };
-        break;
+      case 5: // Business Entities - Saved individually, skip bulk save
+        return { success: true, message: 'Business entities are saved individually' };
 
       case 6: // Review - No save needed
         return { success: true, message: 'Review step - no save needed' };
@@ -328,7 +247,8 @@ export const saveStepData = async (formData, step) => {
       success: true,
       data: data,
       message: `Step ${step} data saved successfully`,
-      clientId: data.clientId || data.id // Return clientId from response
+      clientId: data.clientId || data.id, // Return clientId from response
+      bankingInfo: data.bankingInfo || null // Return banking info from step 2 if present
     };
 
   } catch (error) {
@@ -681,14 +601,19 @@ export const saveBusinessEntity = async (entityType, entityData, entityId = null
     switch(entityType) {
       case 'soleTrader':
         endpoint = `${API_BASE_URL}/clients/business-entities/sole-trader`;
+
+        // Determine if using primary banking based on the flag
+        const usePrimaryBanking = entityData.usePrimaryBanking === true;
+
         payload = {
-          clientId: clientId, // Include clientId
+          clientId: clientId,
           abn: entityData.abn ? parseInt(entityData.abn) : null,
           gstRegistered: entityData.gstRegistered || false,
           tradingName: entityData.tradingNames?.filter(name => name.trim() !== '') || [],
           businessAddress: entityData.businessAddress || null,
           registeredAddress: entityData.registeredAddress || null,
-          usePrimaryBanking: entityData.usePrimaryBanking !== undefined ? entityData.usePrimaryBanking : true,
+          usePrimaryBanking: usePrimaryBanking,
+          // Always send banking details - backend will handle matching/linking
           bankName: entityData.bankName || null,
           accountName: entityData.accountName || null,
           bsb: entityData.bsb || null,
@@ -709,7 +634,7 @@ export const saveBusinessEntity = async (entityType, entityData, entityId = null
           tfn: entityData.tfn ? parseInt(entityData.tfn) : null,
           tradingNames: entityData.tradingNames?.filter(name => name.trim() !== '') || [],
           asicIndustryCodes: entityData.asicIndustryCodes?.filter(code => code.trim() !== '') || [],
-          usePrimaryBanking: entityData.usePrimaryBanking !== undefined ? entityData.usePrimaryBanking : true,
+          // Company always creates new banking info
           bankName: entityData.bankName || null,
           accountName: entityData.accountName || null,
           bsb: entityData.bsb || null,
@@ -730,7 +655,7 @@ export const saveBusinessEntity = async (entityType, entityData, entityId = null
           tfn: entityData.tfn ? parseInt(entityData.tfn) : null,
           tradingNames: entityData.tradingNames?.filter(name => name.trim() !== '') || [],
           asicIndustryCodes: entityData.asicIndustryCodes?.filter(code => code.trim() !== '') || [],
-          usePrimaryBanking: entityData.usePrimaryBanking !== undefined ? entityData.usePrimaryBanking : true,
+          // Trust always creates new banking info
           bankName: entityData.bankName || null,
           accountName: entityData.accountName || null,
           bsb: entityData.bsb || null,
@@ -750,7 +675,7 @@ export const saveBusinessEntity = async (entityType, entityData, entityId = null
           tfn: entityData.tfn ? parseInt(entityData.tfn) : null,
           tradingNames: entityData.tradingNames?.filter(name => name.trim() !== '') || [],
           asicIndustryCodes: entityData.asicIndustryCodes?.filter(code => code.trim() !== '') || [],
-          usePrimaryBanking: entityData.usePrimaryBanking !== undefined ? entityData.usePrimaryBanking : true,
+          // SMSF always creates new banking info
           bankName: entityData.bankName || null,
           accountName: entityData.accountName || null,
           bsb: entityData.bsb || null,
@@ -768,7 +693,7 @@ export const saveBusinessEntity = async (entityType, entityData, entityId = null
           businessAddress: entityData.businessAddress || null,
           tfn: entityData.tfn ? parseInt(entityData.tfn) : null,
           tradingNames: entityData.tradingNames?.filter(name => name.trim() !== '') || [],
-          usePrimaryBanking: entityData.usePrimaryBanking !== undefined ? entityData.usePrimaryBanking : true,
+          // Partnership always creates new banking info
           bankName: entityData.bankName || null,
           accountName: entityData.accountName || null,
           bsb: entityData.bsb || null,

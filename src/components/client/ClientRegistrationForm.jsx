@@ -18,6 +18,8 @@ const ClientRegistrationForm = ({ userData, onRegistrationComplete, onLogout }) 
   const [errors, setErrors] = useState({});
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState(null);
+  const [errorMessage, setErrorMessage] = useState(null);
+  const [lastSavedStepName, setLastSavedStepName] = useState('');
   const { formData, setFormData, handleInputChange } = useFormData();
 
   // Load existing client data if clientId exists
@@ -72,11 +74,18 @@ const ClientRegistrationForm = ({ userData, onRegistrationComplete, onLogout }) 
 
     setIsSaving(true);
     setSaveStatus('saving');
+    setErrorMessage(null);
 
     const saveResult = await saveStepData(formData, currentStep);
 
     if (saveResult.success) {
       setSaveStatus('saved');
+      setErrorMessage(null);
+
+      // Save the step name for display
+      const stepName = steps.find(s => s.number === currentStep)?.title || `Step ${currentStep}`;
+      setLastSavedStepName(stepName);
+
       console.log(`✅ Step ${currentStep} data saved successfully`);
 
       // If this is step 1 (Personal Info), store the clientId
@@ -95,13 +104,77 @@ const ClientRegistrationForm = ({ userData, onRegistrationComplete, onLogout }) 
       }
     } else {
       setSaveStatus('error');
-      console.error('❌ Save failed:', saveResult.error);
+      console.error('❌ Save failed - Full response:', JSON.stringify(saveResult, null, 2));
 
-      setTimeout(() => setSaveStatus(null), 3000);
+      // Save the step name for display
+      const stepName = steps.find(s => s.number === currentStep)?.title || `Step ${currentStep}`;
+      setLastSavedStepName(stepName);
+
+      // Extract error message from backend response with deep search
+      let displayError = 'Failed to save. Please check your information and try again.';
+
+      // Helper function to deeply search for _embedded.errors
+      const findEmbeddedErrors = (obj) => {
+        if (!obj) return null;
+
+        // Direct check
+        if (obj._embedded && obj._embedded.errors && Array.isArray(obj._embedded.errors)) {
+          return obj._embedded.errors;
+        }
+
+        // Check in error property
+        if (obj.error && obj.error._embedded && obj.error._embedded.errors && Array.isArray(obj.error._embedded.errors)) {
+          return obj.error._embedded.errors;
+        }
+
+        // Check in data property (some APIs wrap response in data)
+        if (obj.data && obj.data._embedded && obj.data._embedded.errors && Array.isArray(obj.data._embedded.errors)) {
+          return obj.data._embedded.errors;
+        }
+
+        return null;
+      };
+
+      const embeddedErrors = findEmbeddedErrors(saveResult);
+
+      if (embeddedErrors && embeddedErrors.length > 0) {
+        const errorMessages = embeddedErrors
+            .map(err => err.message)
+            .filter(msg => msg)
+            .map(msg => {
+              // Extract the actual error message after the colon
+              const parts = msg.split(': ');
+              return parts.length > 1 ? parts[1] : msg;
+            });
+
+        // Join multiple errors with bullet points for better readability
+        if (errorMessages.length > 1) {
+          displayError = errorMessages.map(msg => `• ${msg}`).join('\n');
+        } else if (errorMessages.length === 1) {
+          displayError = errorMessages[0];
+        }
+      } else {
+        // Fallback to other message sources (but not "Bad Request")
+        const errorObj = saveResult.error || saveResult.data || saveResult;
+
+        if (errorObj.message && errorObj.message !== 'Bad Request') {
+          displayError = errorObj.message;
+        } else if (typeof errorObj === 'string') {
+          displayError = errorObj;
+        } else if (saveResult.message && saveResult.message !== 'Bad Request') {
+          displayError = saveResult.message;
+        }
+      }
+
+      setErrorMessage(displayError);
+
+      setTimeout(() => {
+        setSaveStatus(null);
+        setErrorMessage(null);
+      }, 5000);
 
       // For step 1, don't proceed if save failed
       if (currentStep === 1) {
-        alert('Failed to save personal information. Please try again.');
         setIsSaving(false);
         return;
       }
@@ -122,25 +195,85 @@ const ClientRegistrationForm = ({ userData, onRegistrationComplete, onLogout }) 
     if (validateStep(currentStep, formData, setErrors)) {
       setIsSaving(true);
       setSaveStatus('saving');
+      setErrorMessage(null);
 
       const result = await registerClient(formData);
 
       if (result.success) {
         console.log('✅ Registration completed successfully');
         setSaveStatus('completed');
+        setErrorMessage(null);
 
         // Call the completion callback to update user status
         if (onRegistrationComplete) {
           onRegistrationComplete();
         }
+      } else {
+        console.error('❌ Registration failed - Full response:', JSON.stringify(result, null, 2));
+        setSaveStatus('error');
+
+        // Extract error message from backend response with deep search
+        let displayError = 'Registration failed. Please check your information and try again.';
+
+        // Helper function to deeply search for _embedded.errors
+        const findEmbeddedErrors = (obj) => {
+          if (!obj) return null;
+
+          // Direct check
+          if (obj._embedded && obj._embedded.errors && Array.isArray(obj._embedded.errors)) {
+            return obj._embedded.errors;
+          }
+
+          // Check in error property
+          if (obj.error && obj.error._embedded && obj.error._embedded.errors && Array.isArray(obj.error._embedded.errors)) {
+            return obj.error._embedded.errors;
+          }
+
+          // Check in data property (some APIs wrap response in data)
+          if (obj.data && obj.data._embedded && obj.data._embedded.errors && Array.isArray(obj.data._embedded.errors)) {
+            return obj.data._embedded.errors;
+          }
+
+          return null;
+        };
+
+        const embeddedErrors = findEmbeddedErrors(result);
+
+        if (embeddedErrors && embeddedErrors.length > 0) {
+          const errorMessages = embeddedErrors
+              .map(err => err.message)
+              .filter(msg => msg)
+              .map(msg => {
+                // Extract the actual error message after the colon
+                const parts = msg.split(': ');
+                return parts.length > 1 ? parts[1] : msg;
+              });
+
+          // Join multiple errors with bullet points for better readability
+          if (errorMessages.length > 1) {
+            displayError = errorMessages.map(msg => `• ${msg}`).join('\n');
+          } else if (errorMessages.length === 1) {
+            displayError = errorMessages[0];
+          }
+        } else {
+          // Fallback to other message sources (but not "Bad Request")
+          const errorObj = result.error || result.data || result;
+
+          if (errorObj.message && errorObj.message !== 'Bad Request') {
+            displayError = errorObj.message;
+          } else if (typeof errorObj === 'string') {
+            displayError = errorObj;
+          } else if (result.message && result.message !== 'Bad Request') {
+            displayError = result.message;
+          }
+        }
+
+        setErrorMessage(displayError);
 
         setTimeout(() => {
-          alert('Registration completed successfully! Redirecting to dashboard...');
-        }, 500);
-      } else {
-        console.error('❌ Registration failed:', result.error);
-        setSaveStatus('error');
-        alert(`Registration failed: ${result.message}`);
+          setSaveStatus(null);
+          setErrorMessage(null);
+        }, 5000);
       }
 
       setIsSaving(false);
@@ -169,39 +302,49 @@ const ClientRegistrationForm = ({ userData, onRegistrationComplete, onLogout }) 
             <h1 className="text-3xl font-bold text-gray-800 mb-2">Complete Your Registration</h1>
             <p className="text-gray-600">Please complete all sections to finish your registration</p>
 
-            {saveStatus && (
-                <div className={`mt-4 inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium ${
-                    saveStatus === 'saving' ? 'bg-blue-100 text-blue-800' :
-                        saveStatus === 'saved' ? 'bg-green-100 text-green-800' :
-                            saveStatus === 'error' ? 'bg-red-100 text-red-800' :
-                                saveStatus === 'completed' ? 'bg-green-100 text-green-800' :
-                                    'bg-gray-100 text-gray-800'
-                }`}>
-                  {saveStatus === 'saving' && (
-                      <>
-                        <Loader2 className="animate-spin mr-2" size={16} />
-                        Saving...
-                      </>
-                  )}
-                  {saveStatus === 'saved' && (
-                      <>
-                        <CheckCircle className="mr-2" size={16} />
-                        Saved successfully
-                      </>
-                  )}
-                  {saveStatus === 'error' && (
-                      <>
-                        ⚠️ Save failed (continuing anyway)
-                      </>
-                  )}
-                  {saveStatus === 'completed' && (
-                      <>
-                        <CheckCircle className="mr-2" size={16} />
-                        Registration completed!
-                      </>
-                  )}
-                </div>
-            )}
+            {/* Fixed height container to prevent jumpiness */}
+            <div className="mt-4 min-h-[80px] flex items-center justify-center">
+              {saveStatus && (
+                  <div className={`inline-flex flex-col items-center px-6 py-3 rounded-lg text-sm font-medium transition-all duration-300 max-w-2xl w-full ${
+                      saveStatus === 'saving' ? 'bg-blue-100 text-blue-800' :
+                          saveStatus === 'saved' ? 'bg-green-100 text-green-800' :
+                              saveStatus === 'error' ? 'bg-red-100 text-red-800' :
+                                  saveStatus === 'completed' ? 'bg-green-100 text-green-800' :
+                                      'bg-gray-100 text-gray-800'
+                  }`}>
+                    <div className="flex items-center">
+                      {saveStatus === 'saving' && (
+                          <>
+                            <Loader2 className="animate-spin mr-2" size={16} />
+                            Saving {steps.find(s => s.number === currentStep)?.title || `Step ${currentStep}`}...
+                          </>
+                      )}
+                      {saveStatus === 'saved' && (
+                          <>
+                            <CheckCircle className="mr-2" size={16} />
+                            {lastSavedStepName} saved successfully
+                          </>
+                      )}
+                      {saveStatus === 'error' && (
+                          <>
+                            ⚠️ {lastSavedStepName} - Save failed
+                          </>
+                      )}
+                      {saveStatus === 'completed' && (
+                          <>
+                            <CheckCircle className="mr-2" size={16} />
+                            Registration completed!
+                          </>
+                      )}
+                    </div>
+                    {errorMessage && saveStatus === 'error' && (
+                        <div className="mt-3 text-xs w-full text-left whitespace-pre-line bg-red-50 p-3 rounded border border-red-200">
+                          {errorMessage}
+                        </div>
+                    )}
+                  </div>
+              )}
+            </div>
           </div>
 
           <ProgressSteps steps={steps} currentStep={currentStep} />

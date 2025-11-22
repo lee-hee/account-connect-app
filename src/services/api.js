@@ -165,7 +165,7 @@ export const saveStepData = async (formData, step) => {
           accountName: formData.accountName || null,
           bsb: formData.bsb || null,
           accountNumber: formData.accountNumber || null,
-          accountType: formData.accountType || null,
+          accountType: 'PERSONAL',
           hasCrypto: formData.hasCrypto || false,
           cryptoType: formData.cryptoType || null,
           hasInvestmentProperty: formData.hasInvestmentProperty || false,
@@ -311,7 +311,14 @@ export const saveStepData = async (formData, step) => {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      console.log('❌ Full Error Response:', JSON.stringify(errorData, null, 2));
+
+      // Return the full error object so the frontend can access _embedded.errors
+      return {
+        success: false,
+        error: errorData, // Return full error object, not just errorData.message
+        message: errorData.message || `HTTP error! status: ${response.status}`
+      };
     }
 
     const data = await response.json();
@@ -459,7 +466,14 @@ export const registerClient = async (formData) => {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      console.log('❌ Full Error Response:', JSON.stringify(errorData, null, 2));
+
+      // Return the full error object so the frontend can access _embedded.errors
+      return {
+        success: false,
+        error: errorData, // Return full error object, not just errorData.message
+        message: errorData.message || `HTTP error! status: ${response.status}`
+      };
     }
 
     const data = await response.json();
